@@ -38,5 +38,6 @@ cmake-build-*/
 java-out
 
 CMakeFiles/
-tests/work.cpp
+tests/work*.cpp
+tests/review.cpp
 
