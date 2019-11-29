@@ -51,5 +51,5 @@ int main() {
 //
     Max<int>::superMax(1, 2);
     Max<Test2>::superMax(Test2(), Test2());
-    Max<Test1>::superMax(Test1(), Test1());
+//    Max<Test1>::superMax(Test1(), Test1());
 }
