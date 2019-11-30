@@ -85,84 +85,84 @@ namespace cs::compiler {
         }
 
     private:
-        int16_t readInt16AtLE(int index);
+        int16_t readInt16AtLE(size_t index);
 
-        int16_t readInt16AtBE(int index);
+        int16_t readInt16AtBE(size_t index);
 
-        int32_t readInt32AtLE(int index);
+        int32_t readInt32AtLE(size_t index);
 
-        int32_t readInt32AtBE(int index);
+        int32_t readInt32AtBE(size_t index);
 
-        int64_t readInt64AtLE(int index);
+        int64_t readInt64AtLE(size_t index);
 
-        int64_t readInt64AtBE(int index);
+        int64_t readInt64AtBE(size_t index);
 
-        float readFloatAtLE(int index);
+        float readFloatAtLE(size_t index);
 
-        float readFloatAtBE(int index);
+        float readFloatAtBE(size_t index);
 
-        double readDoubleAtLE(int index);
+        double readDoubleAtLE(size_t index);
 
-        double readDoubleAtBE(int index);
+        double readDoubleAtBE(size_t index);
 
-        void writeInt16AtLE(int index, int16_t value);
+        void writeInt16AtLE(size_t index, int16_t value);
 
-        void writeInt16AtBE(int index, int16_t value);
+        void writeInt16AtBE(size_t index, int16_t value);
 
-        void writeInt32AtLE(int index, int32_t value);
+        void writeInt32AtLE(size_t index, int32_t value);
 
-        void writeInt32AtBE(int index, int32_t value);
+        void writeInt32AtBE(size_t index, int32_t value);
 
-        void writeInt64AtLE(int index, int64_t value);
+        void writeInt64AtLE(size_t index, int64_t value);
 
-        void writeInt64AtBE(int index, int64_t value);
+        void writeInt64AtBE(size_t index, int64_t value);
 
-        void writeFloatAtLE(int index, float value);
+        void writeFloatAtLE(size_t index, float value);
 
-        void writeFloatAtBE(int index, float value);
+        void writeFloatAtBE(size_t index, float value);
 
-        void writeDoubleAtLE(int index, double value);
+        void writeDoubleAtLE(size_t index, double value);
 
-        void writeDoubleAtBE(int index, double value);
+        void writeDoubleAtBE(size_t index, double value);
 
     public:
-        int placeholderInt8() {
+        size_t placeholderInt8() {
             int p = this->_position;
             writeInt8(0);
             return p;
         }
 
-        int placeholderInt16() {
+        size_t placeholderInt16() {
             int p = this->_position;
             writeInt16(0);
             return p;
         }
 
-        int placeholderInt32() {
+        size_t placeholderInt32() {
             int p = this->_position;
             writeInt32(0);
             return p;
         }
 
-        int placeholderInt64() {
+        size_t placeholderInt64() {
             int p = this->_position;
             writeInt64(0);
             return p;
         }
 
-        int placeholderFloat() {
+        size_t placeholderFloat() {
             int p = this->_position;
             writeFloat(0);
             return p;
         }
 
-        int placeholderDouble() {
+        size_t placeholderDouble() {
             int p = this->_position;
             writeDouble(0);
             return p;
         }
 
-        int placeholderSkip(size_t count) {
+        size_t placeholderSkip(size_t count) {
             int p = this->_position;
             _position += count;
             return p;
@@ -208,19 +208,19 @@ namespace cs::compiler {
             return r;
         }
 
-        int8_t readInt8At(int index);
+        int8_t readInt8At(size_t index);
 
-        int16_t readInt16At(int index);
+        int16_t readInt16At(size_t index);
 
-        int32_t readInt32At(int index);
+        int32_t readInt32At(size_t index);
 
-        int64_t readInt64At(int index);
+        int64_t readInt64At(size_t index);
 
-        float readFloatAt(int index);
+        float readFloatAt(size_t index);
 
-        double readDoubleAt(int index);
+        double readDoubleAt(size_t index);
 
-        std::string readStringAt(int index, size_t length);
+        std::string readStringAt(size_t index, size_t length);
 
     public:
         void writeInt8(int8_t value) {
@@ -257,19 +257,19 @@ namespace cs::compiler {
             _position += value.length();
         }
 
-        void writeInt8At(int index, int8_t value);
+        void writeInt8At(size_t index, int8_t value);
 
-        void writeInt16At(int index, int16_t value);
+        void writeInt16At(size_t index, int16_t value);
 
-        void writeInt32At(int index, int32_t value);
+        void writeInt32At(size_t index, int32_t value);
 
-        void writeInt64At(int index, int64_t value);
+        void writeInt64At(size_t index, int64_t value);
 
-        void writeFloatAt(int index, float value);
+        void writeFloatAt(size_t index, float value);
 
-        void writeDoubleAt(int index, double value);
+        void writeDoubleAt(size_t index, double value);
 
-        void writeStringAt(int index, const std::string &value);
+        void writeStringAt(size_t index, const std::string &value);
     };
 
     ByteBuffer::ByteBuffer()
@@ -326,31 +326,31 @@ namespace cs::compiler {
         }
     }
 
-    int8_t ByteBuffer::readInt8At(int index) {
+    int8_t ByteBuffer::readInt8At(size_t index) {
         return _buffer[index];
     }
 
-    int16_t ByteBuffer::readInt16At(int index) {
+    int16_t ByteBuffer::readInt16At(size_t index) {
         return (_byteOrder == BO_BIG_ENDIAN ? readInt16AtBE(index) : readInt16AtLE(index));
     }
 
-    int32_t ByteBuffer::readInt32At(int index) {
+    int32_t ByteBuffer::readInt32At(size_t index) {
         return (_byteOrder == BO_BIG_ENDIAN ? readInt32AtBE(index) : readInt32AtLE(index));
     }
 
-    int64_t ByteBuffer::readInt64At(int index) {
+    int64_t ByteBuffer::readInt64At(size_t index) {
         return (_byteOrder == BO_BIG_ENDIAN ? readInt64AtBE(index) : readInt64AtLE(index));
     }
 
-    float ByteBuffer::readFloatAt(int index) {
+    float ByteBuffer::readFloatAt(size_t index) {
         return (_byteOrder == BO_BIG_ENDIAN ? readFloatAtBE(index) : readFloatAtLE(index));
     }
 
-    double ByteBuffer::readDoubleAt(int index) {
+    double ByteBuffer::readDoubleAt(size_t index) {
         return (_byteOrder == BO_BIG_ENDIAN ? readDoubleAtBE(index) : readDoubleAtLE(index));
     }
 
-    std::string ByteBuffer::readStringAt(int index, size_t length) {
+    std::string ByteBuffer::readStringAt(size_t index, size_t length) {
         std::stringstream ss;
         for (size_t i = 0; i < length; ++i) {
             ss << _buffer[index++];
@@ -358,57 +358,57 @@ namespace cs::compiler {
         return ss.str();
     }
 
-    void ByteBuffer::writeInt8At(int index, int8_t value) {
+    void ByteBuffer::writeInt8At(size_t index, int8_t value) {
         growIfNeeded(1);
         _buffer[index] = value;
     }
 
-    void ByteBuffer::writeInt16At(int index, int16_t value) {
+    void ByteBuffer::writeInt16At(size_t index, int16_t value) {
         growIfNeeded(2);
         (_byteOrder == BO_BIG_ENDIAN) ? writeInt16AtBE(index, value) : writeInt16AtLE(index, value);
     }
 
-    void ByteBuffer::writeInt32At(int index, int32_t value) {
+    void ByteBuffer::writeInt32At(size_t index, int32_t value) {
         growIfNeeded(4);
         (_byteOrder == BO_BIG_ENDIAN) ? writeInt32AtBE(index, value) : writeInt32AtLE(index, value);
     }
 
-    void ByteBuffer::writeInt64At(int index, int64_t value) {
+    void ByteBuffer::writeInt64At(size_t index, int64_t value) {
         growIfNeeded(8);
         (_byteOrder == BO_BIG_ENDIAN) ? writeInt64AtBE(index, value) : writeInt64AtLE(index, value);
     }
 
-    void ByteBuffer::writeFloatAt(int index, float value) {
+    void ByteBuffer::writeFloatAt(size_t index, float value) {
         growIfNeeded(4);
         (_byteOrder == BO_BIG_ENDIAN) ? writeFloatAtBE(index, value) : writeFloatAtLE(index, value);
     }
 
-    void ByteBuffer::writeDoubleAt(int index, double value) {
+    void ByteBuffer::writeDoubleAt(size_t index, double value) {
         growIfNeeded(8);
         (_byteOrder == BO_BIG_ENDIAN) ? writeDoubleAtBE(index, value) : writeDoubleAtLE(index, value);
     }
 
-    void ByteBuffer::writeStringAt(int index, const std::string &value) {
+    void ByteBuffer::writeStringAt(size_t index, const std::string &value) {
         growIfNeeded(value.length());
         copy(reinterpret_cast<const byte *>(value.c_str()), _buffer + index, value.length());
     }
 
     ///////////////////////////////////////////////////////////////////////////////
-    int16_t ByteBuffer::readInt16AtLE(int index) {
+    int16_t ByteBuffer::readInt16AtLE(size_t index) {
         byte b1 = _buffer[index + 1];
         byte b0 = _buffer[index];
 
         return ((b1 & 0xFF) << 8) | (b0 & 0xFF);
     }
 
-    int16_t ByteBuffer::readInt16AtBE(int index) {
+    int16_t ByteBuffer::readInt16AtBE(size_t index) {
         byte b0 = _buffer[index + 1];
         byte b1 = _buffer[index];
 
         return ((b1 & 0xFF) << 8) | (b0 & 0xFF);
     }
 
-    int32_t ByteBuffer::readInt32AtLE(int index) {
+    int32_t ByteBuffer::readInt32AtLE(size_t index) {
         byte b3 = _buffer[index + 3];
         byte b2 = _buffer[index + 2];
         byte b1 = _buffer[index + 1];
@@ -417,7 +417,7 @@ namespace cs::compiler {
         return (b3 << 24) | ((b2 & 0xFF) << 16) | ((b1 & 0xFF) << 8) | (b0 & 0xFF);
     }
 
-    int32_t ByteBuffer::readInt32AtBE(int index) {
+    int32_t ByteBuffer::readInt32AtBE(size_t index) {
         byte b0 = _buffer[index + 3];
         byte b1 = _buffer[index + 2];
         byte b2 = _buffer[index + 1];
@@ -426,7 +426,7 @@ namespace cs::compiler {
         return (b3 << 24) | ((b2 & 0xFF) << 16) | ((b1 & 0xFF) << 8) | (b0 & 0xFF);
     }
 
-    int64_t ByteBuffer::readInt64AtLE(int index) {
+    int64_t ByteBuffer::readInt64AtLE(size_t index) {
         byte b7 = _buffer[index + 7];
         byte b6 = _buffer[index + 6];
         byte b5 = _buffer[index + 5];
@@ -442,7 +442,7 @@ namespace cs::compiler {
                (((int64_t) b1 & 0xFF) << 8) | ((int64_t) b0 & 0xFF);
     }
 
-    int64_t ByteBuffer::readInt64AtBE(int index) {
+    int64_t ByteBuffer::readInt64AtBE(size_t index) {
         byte b0 = _buffer[index + 7];
         byte b1 = _buffer[index + 6];
         byte b2 = _buffer[index + 5];
@@ -458,7 +458,7 @@ namespace cs::compiler {
                (((int64_t) b1 & 0xFF) << 8) | ((int64_t) b0 & 0xFF);
     }
 
-    float ByteBuffer::readFloatAtLE(int index) {
+    float ByteBuffer::readFloatAtLE(size_t index) {
         union {
             byte bytes[4];
             float value;
@@ -471,7 +471,7 @@ namespace cs::compiler {
         return bits.value;
     }
 
-    float ByteBuffer::readFloatAtBE(int index) {
+    float ByteBuffer::readFloatAtBE(size_t index) {
         union {
             byte bytes[4];
             float value;
@@ -484,7 +484,7 @@ namespace cs::compiler {
         return bits.value;
     }
 
-    double ByteBuffer::readDoubleAtLE(int index) {
+    double ByteBuffer::readDoubleAtLE(size_t index) {
         union {
             byte bytes[8];
             double value;
@@ -497,7 +497,7 @@ namespace cs::compiler {
         return bits.value;
     }
 
-    double ByteBuffer::readDoubleAtBE(int index) {
+    double ByteBuffer::readDoubleAtBE(size_t index) {
         union {
             byte bytes[8];
             double value;
@@ -512,31 +512,31 @@ namespace cs::compiler {
 
     ///////////////////////////////////////////////////////////////////////////////
 
-    void ByteBuffer::writeInt16AtLE(int index, int16_t value) {
+    void ByteBuffer::writeInt16AtLE(size_t index, int16_t value) {
         _buffer[index++] = value & 0xFF;
         _buffer[index] = (value >> 8) & 0xFF;
     }
 
-    void ByteBuffer::writeInt16AtBE(int index, int16_t value) {
+    void ByteBuffer::writeInt16AtBE(size_t index, int16_t value) {
         _buffer[index++] = (value >> 8) & 0xFF;
         _buffer[index] = value & 0xFF;
     }
 
-    void ByteBuffer::writeInt32AtLE(int index, int32_t value) {
+    void ByteBuffer::writeInt32AtLE(size_t index, int32_t value) {
         _buffer[index++] = value & 0xFF;
         _buffer[index++] = (value >> 8) & 0xFF;
         _buffer[index++] = (value >> 16) & 0xFF;
         _buffer[index] = (value >> 24) & 0xFF;
     }
 
-    void ByteBuffer::writeInt32AtBE(int index, int32_t value) {
+    void ByteBuffer::writeInt32AtBE(size_t index, int32_t value) {
         _buffer[index++] = (value >> 24) & 0xFF;
         _buffer[index++] = (value >> 16) & 0xFF;
         _buffer[index++] = (value >> 8) & 0xFF;
         _buffer[index] = value & 0xFF;
     }
 
-    void ByteBuffer::writeInt64AtLE(int index, int64_t value) {
+    void ByteBuffer::writeInt64AtLE(size_t index, int64_t value) {
         _buffer[index++] = value & 0xFF;
         _buffer[index++] = (value >> 8) & 0xFF;
         _buffer[index++] = (value >> 16) & 0xFF;
@@ -547,7 +547,7 @@ namespace cs::compiler {
         _buffer[index] = (value >> 56) & 0xFF;
     }
 
-    void ByteBuffer::writeInt64AtBE(int index, int64_t value) {
+    void ByteBuffer::writeInt64AtBE(size_t index, int64_t value) {
         _buffer[index++] = (value >> 56) & 0xFF;
         _buffer[index++] = (value >> 48) & 0xFF;
         _buffer[index++] = (value >> 40) & 0xFF;
@@ -558,7 +558,7 @@ namespace cs::compiler {
         _buffer[index] = value & 0xFF;
     }
 
-    void ByteBuffer::writeFloatAtLE(int index, float value) {
+    void ByteBuffer::writeFloatAtLE(size_t index, float value) {
         union {
             byte bytes[4];
             float value;
@@ -570,7 +570,7 @@ namespace cs::compiler {
         }
     }
 
-    void ByteBuffer::writeFloatAtBE(int index, float value) {
+    void ByteBuffer::writeFloatAtBE(size_t index, float value) {
         union {
             byte bytes[4];
             float value;
@@ -582,7 +582,7 @@ namespace cs::compiler {
         }
     }
 
-    void ByteBuffer::writeDoubleAtLE(int index, double value) {
+    void ByteBuffer::writeDoubleAtLE(size_t index, double value) {
         union {
             byte bytes[8];
             double value;
@@ -594,7 +594,7 @@ namespace cs::compiler {
         }
     }
 
-    void ByteBuffer::writeDoubleAtBE(int index, double value) {
+    void ByteBuffer::writeDoubleAtBE(size_t index, double value) {
         union {
             byte bytes[8];
             double value;
@@ -608,6 +608,8 @@ namespace cs::compiler {
 }
 
 namespace kiva::huffman {
+    using namespace cs::compiler;
+
     constexpr size_t HFZ_MAGIC_SIZE = 4;
     constexpr size_t TABLE_SIZE = UINT8_MAX + 1;
     constexpr unsigned char HFZ_MAGIC[HFZ_MAGIC_SIZE] = {0xde, 0xad, 0xfa, 0xce};
@@ -1064,11 +1066,15 @@ namespace kiva::huffman {
             return std::move(archive);
         }
 
-        static void writeHeader(FILE *fp, const EntryHeader &header) {
+    private:
+        ByteBuffer _byteBuffer;
+
+    private:
+        void writeHeader(const EntryHeader &header) {
             fwrite(&header, sizeof(EntryHeader), 1, fp);
         }
 
-        static void writeFile(FILE *fp, const HuffmanTable &table, FILE *fileIn) {
+        void writeFile(FILE *fp, const HuffmanTable &table, FILE *fileIn) {
             int ch = 0;
 
             BitWriter writer;
