@@ -483,12 +483,12 @@ namespace kiva::huffman {
      * Compressed entry header
      */
     struct EntryHeader {
-        int totalBytes = 0;
-        char filePath[PATH_MAX] = {'\0'};
+        int compressedSize = 0;
+        char filePath[PATH_MAX] = {0};
         int huffmanTable[TABLE_SIZE] = {0};
     };
 
-    class HfzCompressor {
+    class HfzCommand {
     private:
         // Type alias to save typing time
         using TreeHeap = MinHeap<HuffmanTree *, TABLE_SIZE, HuffmanTree::Comparator>;
@@ -647,7 +647,7 @@ namespace kiva::huffman {
             // note that: we won't fill the filePath field
             size_t compressedEnd = result.getPosition();
             EntryHeader header{};
-            header.totalBytes = static_cast<int>(compressedEnd - compressedStart);
+            header.compressedSize = static_cast<int>(compressedEnd - compressedStart);
             memcpy(header.huffmanTable, table.data(), table.size());
 
             // write the real header
@@ -658,6 +658,12 @@ namespace kiva::huffman {
             return true;
         }
 
+        static bool decompressContent(const ByteBuffer::byte *bytes, size_t size, ByteBuffer &result) {
+            return true;
+        }
+    };
+
+    class HfzCompressor {
     private:
         std::vector<String> _files;
         String _outputFile;
@@ -715,7 +721,7 @@ namespace kiva::huffman {
                 fread(bytes, fileSize, 1, fileIn);
 
                 inputBuffer.rewind();
-                if (!compressContent(bytes, fileSize, inputBuffer)) {
+                if (!HfzCommand::compressContent(bytes, fileSize, inputBuffer)) {
                     fprintf(stderr, "compress: failed to compress file content: %s\n",
                         f.c_str());
                     ++errors;
@@ -764,48 +770,195 @@ namespace kiva::huffman {
         }
     };
 
+    class HfzEntry {
+        friend class HfzIterator;
 
-    bool decompress(const String &compressedFile, const String &outputDir) {
-        FILE *fp = fopen(compressedFile.c_str(), "rb");
-        if (fp == nullptr) {
-            fprintf(stderr, "decompress: failed to open file %s for read: %s\n",
-                compressedFile.c_str(), strerror(errno));
-            return false;
-        }
+    private:
+        EntryHeader _entryHeader{};
+        ByteBuffer _inflateBuffer;
+        bool _inflated = false;
+        FILE *_stream = nullptr;
 
-        if (!HfzUtils::mkdirR(outputDir, 0755)) {
-            fprintf(stderr, "decompress: failed to mkdir %s for read: %s\n",
-                outputDir.c_str(), strerror(errno));
-            fclose(fp);
-            return false;
-        }
-
-        // check magic
-        unsigned char magic[HFZ_MAGIC_SIZE] = {0};
-        fread(magic, HFZ_MAGIC_SIZE, 1, fp);
-        if (memcmp(magic, HFZ_MAGIC, HFZ_MAGIC_SIZE) != 0) {
-            fprintf(stderr, "decompress: .hfz file magic not found\n");
-            fclose(fp);
-            return false;
-        }
-
-        EntryHeader header;
-        while (!feof(fp)) {
-            memset(&header, '\0', sizeof(EntryHeader));
-            if (fread(&header, sizeof(EntryHeader), 1, fp) != 1) {
-                break;
+    private:
+        bool doInflate() {
+            auto bytes = new ByteBuffer::byte[getCompressedSize()];
+            if (fread(bytes, getCompressedSize(), 1, _stream) != 1) {
+                delete[] bytes;
+                return false;
             }
 
-            printf("Extracting %s, compressed size: %d\n",
-                header.filePath, header.totalBytes);
-
-            fseek(fp, header.totalBytes, SEEK_CUR);
+            _inflateBuffer.rewind();
+            bool r = HfzCommand::decompressContent(nullptr, 0, _inflateBuffer);
+            delete[] bytes;
+            return r;
         }
 
-        fclose(fp);
-        return true;
-    }
+    public:
+        HfzEntry() = default;
 
+        ~HfzEntry() = default;
+
+        HfzEntry(const HfzEntry &) = delete;
+
+        HfzEntry(HfzEntry &&) = delete;
+
+        HfzEntry &operator=(const HfzEntry &) = delete;
+
+        HfzEntry &&operator=(HfzEntry &&) = delete;
+
+        int getCompressedSize() const {
+            return _entryHeader.compressedSize;
+        }
+
+        String getEntryFilePath() const {
+            return _entryHeader.filePath;
+        }
+
+        SizedBuffer inflate() {
+            if (!_inflated) {
+                if (!doInflate()) {
+                    return SizedBuffer{
+                        ._bytes = nullptr,
+                        ._size = 0,
+                        ._used = 0,
+                    };
+                }
+                _inflated = true;
+            }
+            return _inflateBuffer.getBuffer();
+        }
+    };
+
+    class HfzIterator : public std::iterator<std::input_iterator_tag, std::shared_ptr<HfzEntry>> {
+    private:
+        FILE *_stream;
+        std::shared_ptr<HfzEntry> _currentEntry;
+
+    private:
+        bool next() {
+            HfzEntry *entry = _currentEntry.get();
+
+            if (feof(_stream)) {
+                return false;
+            }
+
+            memset(&entry->_entryHeader, '\0', sizeof(EntryHeader));
+            if (fread(&entry->_entryHeader, sizeof(EntryHeader), 1, _stream) != 1) {
+                return false;
+            }
+
+            entry->_stream = _stream;
+            return true;
+        }
+
+    public:
+        explicit HfzIterator(FILE *stream)
+            : _stream(stream), _currentEntry(new HfzEntry) {
+            next();
+        }
+
+        ~HfzIterator() = default;
+
+        HfzIterator &operator=(const HfzIterator &other) {
+            this->_stream = other._stream;
+            this->_currentEntry = other._currentEntry;
+            return *this;
+        }
+
+        HfzIterator &operator++() {
+            next();
+            return *this;
+        }
+
+        std::shared_ptr<HfzEntry> operator*() {
+            return _currentEntry;
+        }
+
+        std::shared_ptr<HfzEntry> operator->() {
+            return _currentEntry;
+        }
+    };
+
+    class HfzArchive {
+    private:
+        String _hfzFile;
+        FILE *_stream;
+
+    public:
+
+    };
+
+    class HfzDecompressor {
+    private:
+        String _hfzFile;
+        String _outputDir;
+
+    public:
+        explicit HfzDecompressor(String compressedFile)
+            : _hfzFile(std::move(compressedFile)),
+              _outputDir(".") {
+        }
+
+        HfzDecompressor(String compressedFile, String outputDir)
+            : _hfzFile(std::move(compressedFile)),
+              _outputDir(std::move(outputDir)) {
+        }
+
+        ~HfzDecompressor() = default;
+
+        const String &getOutputDir() const {
+            return _outputDir;
+        }
+
+        void setOutputDir(const String &outputDir) {
+            _outputDir = outputDir;
+        }
+
+        bool decompress() {
+            FILE *fp = fopen(_hfzFile.c_str(), "rb");
+            if (fp == nullptr) {
+                fprintf(stderr, "decompress: failed to open file %s for read: %s\n",
+                    _hfzFile.c_str(), strerror(errno));
+                return false;
+            }
+
+            if (!HfzUtils::mkdirR(_outputDir, 0755)) {
+                fprintf(stderr, "decompress: failed to mkdir %s for read: %s\n",
+                    _outputDir.c_str(), strerror(errno));
+                fclose(fp);
+                return false;
+            }
+
+            // check magic
+            unsigned char magic[HFZ_MAGIC_SIZE] = {0};
+            fread(magic, HFZ_MAGIC_SIZE, 1, fp);
+            if (memcmp(magic, HFZ_MAGIC, HFZ_MAGIC_SIZE) != 0) {
+                fprintf(stderr, "decompress: .hfz file magic not found\n");
+                fclose(fp);
+                return false;
+            }
+
+            EntryHeader header;
+            while (!feof(fp)) {
+                memset(&header, '\0', sizeof(EntryHeader));
+                if (fread(&header, sizeof(EntryHeader), 1, fp) != 1) {
+                    break;
+                }
+
+                printf("Extracting %s, compressed size: %d\n",
+                    header.filePath, header.compressedSize);
+
+                fseek(fp, header.compressedSize, SEEK_CUR);
+            }
+
+            fclose(fp);
+            return true;
+        }
+
+        bool operator()() {
+            return decompress();
+        }
+    };
 }
 
 int main(int argc, const char **argv) {
@@ -849,10 +1002,12 @@ int main(int argc, const char **argv) {
             return 1;
         }
 
-        const char *compressed = argv[0];
-        const char *outDir = argc == 2 ? argv[1] : ".";
+        HfzDecompressor decompressor(argv[0]);
+        if (argc == 2) {
+            decompressor.setOutputDir(argv[1]);
+        }
 
-        if (!decompress(compressed, outDir)) {
+        if (!decompressor()) {
             fprintf(stderr, "decompress: error encountered\n");
             return 1;
         }
