@@ -19,10 +19,6 @@
 #pragma ide diagnostic ignored "modernize-use-nodiscard"
 
 namespace cs::compiler {
-    enum ByteOrder {
-        BO_LITTLE_ENDIAN, BO_BIG_ENDIAN
-    };
-
     struct SizedBuffer {
         size_t _size;
         size_t _used;
@@ -34,27 +30,67 @@ namespace cs::compiler {
         using byte = uint8_t;
 
         static constexpr float BUFFER_GROWTH_FACTOR = 1.5f;
-        static constexpr size_t BUFFER_DEFAULT_LENGTH = 128;
+        static constexpr size_t BUFFER_DEFAULT_LENGTH = 1024;
 
     private:
         byte *_buffer;
         size_t _bufferLength;
         size_t _position;
-        ByteOrder _byteOrder;
 
     private:
-        void growBuffer();
+        void growBuffer() {
+            if (_buffer == nullptr) {
+                // The buffer has not been allocated
+                _buffer = static_cast<byte *>(malloc(sizeof(_buffer[0]) * _bufferLength));
 
-        void growIfNeeded(size_t least);
+                if (!_buffer) {
+                    throw std::runtime_error("growBuffer(): malloc failed");
+                }
+                return;
+            }
 
-        static void copy(const byte *from, byte *to, size_t count);
+            // The buffer needs to be expanded
+            size_t currentLength = _bufferLength == 1 ? 2 : _bufferLength;
+            size_t fitSize = currentLength * BUFFER_GROWTH_FACTOR;
+            byte *fitBuffer = static_cast<byte *>(realloc(_buffer, sizeof(_buffer[0]) * fitSize));
+
+            if (fitBuffer != nullptr) {
+                // New buffer successfully allocated, the original buffer
+                // was freed by realloc()
+                _buffer = fitBuffer;
+                _bufferLength = fitSize;
+            } else {
+                // Nothing changed when allocation failed
+                throw std::runtime_error("growBuffer(): realloc failed");
+            }
+        }
+
+        void growIfNeeded(size_t least) {
+            // Keep growing until current buffer can afford the required length.
+            while (_position + least >= _bufferLength) {
+                growBuffer();
+            }
+        }
+
+        static void copy(const byte *from, byte *to, size_t count) {
+            memcpy(to, from, count);
+        }
 
     public:
-        ByteBuffer();
+        ByteBuffer()
+            : ByteBuffer(BUFFER_DEFAULT_LENGTH) {
+        }
 
-        explicit ByteBuffer(size_t initialLength);
+        explicit ByteBuffer(size_t initialLength)
+            : _buffer(nullptr), _bufferLength(initialLength), _position(0) {
+            growBuffer();
+        }
 
-        ~ByteBuffer();
+        ~ByteBuffer() {
+            if (_buffer != nullptr) {
+                free(_buffer);
+            }
+        }
 
         SizedBuffer getBuffer() {
             return {
@@ -62,14 +98,6 @@ namespace cs::compiler {
                 ._used = getPosition(),
                 ._bytes = _buffer,
             };
-        }
-
-        void setOrder(ByteOrder order) {
-            this->_byteOrder = order;
-        }
-
-        ByteOrder getByteOrder() const {
-            return _byteOrder;
         }
 
         size_t getLength() const {
@@ -84,527 +112,48 @@ namespace cs::compiler {
             _position = 0;
         }
 
-    private:
-        int16_t readInt16AtLE(size_t index);
-
-        int16_t readInt16AtBE(size_t index);
-
-        int32_t readInt32AtLE(size_t index);
-
-        int32_t readInt32AtBE(size_t index);
-
-        int64_t readInt64AtLE(size_t index);
-
-        int64_t readInt64AtBE(size_t index);
-
-        float readFloatAtLE(size_t index);
-
-        float readFloatAtBE(size_t index);
-
-        double readDoubleAtLE(size_t index);
-
-        double readDoubleAtBE(size_t index);
-
-        void writeInt16AtLE(size_t index, int16_t value);
-
-        void writeInt16AtBE(size_t index, int16_t value);
-
-        void writeInt32AtLE(size_t index, int32_t value);
-
-        void writeInt32AtBE(size_t index, int32_t value);
-
-        void writeInt64AtLE(size_t index, int64_t value);
-
-        void writeInt64AtBE(size_t index, int64_t value);
-
-        void writeFloatAtLE(size_t index, float value);
-
-        void writeFloatAtBE(size_t index, float value);
-
-        void writeDoubleAtLE(size_t index, double value);
-
-        void writeDoubleAtBE(size_t index, double value);
-
     public:
-        size_t placeholderInt8() {
-            int p = this->_position;
-            writeInt8(0);
-            return p;
-        }
-
-        size_t placeholderInt16() {
-            int p = this->_position;
-            writeInt16(0);
-            return p;
-        }
-
-        size_t placeholderInt32() {
-            int p = this->_position;
-            writeInt32(0);
-            return p;
-        }
-
-        size_t placeholderInt64() {
-            int p = this->_position;
-            writeInt64(0);
-            return p;
-        }
-
-        size_t placeholderFloat() {
-            int p = this->_position;
-            writeFloat(0);
-            return p;
-        }
-
-        size_t placeholderDouble() {
-            int p = this->_position;
-            writeDouble(0);
-            return p;
-        }
-
-        size_t placeholderSkip(size_t count) {
-            int p = this->_position;
+        size_t reserve(size_t count) {
+            size_t p = this->_position;
             _position += count;
             return p;
         }
 
-        int8_t readInt8() {
-            return readInt8At(_position++);
+        void writeU8(byte u) {
+            writeU8At(_position++, u);
         }
 
-        int16_t readInt16() {
-            auto r = readInt16At(_position);
-            _position += 2;
+        void write(const byte *data, size_t size) {
+            writeAt(_position, data, size);
+            _position += size;
+        }
+
+        bool read(byte *to, size_t size) {
+            bool r = readAt(_position, to, size);
+            _position += size;
             return r;
         }
 
-        int32_t readInt32() {
-            auto r = readInt32At(_position);
-            _position += 4;
-            return r;
+        void writeU8At(size_t index, byte u) {
+            growIfNeeded(1);
+            _buffer[index] = u;
         }
 
-        int64_t readInt64() {
-            auto r = readInt64At(_position);
-            _position += 8;
-            return r;
-        }
-
-        float readFloat() {
-            auto r = readFloatAt(_position);
-            _position += 4;
-            return r;
-        }
-
-        double readDouble() {
-            auto r = readDoubleAt(_position);
-            _position += 8;
-            return r;
-        }
-
-        std::string readString(size_t length) {
-            const auto &r = readStringAt(_position, length);
-            _position += length;
-            return r;
-        }
-
-        int8_t readInt8At(size_t index);
-
-        int16_t readInt16At(size_t index);
-
-        int32_t readInt32At(size_t index);
-
-        int64_t readInt64At(size_t index);
-
-        float readFloatAt(size_t index);
-
-        double readDoubleAt(size_t index);
-
-        std::string readStringAt(size_t index, size_t length);
-
-    public:
-        void writeInt8(int8_t value) {
-            writeInt8At(_position++, value);
-        }
-
-        void writeInt16(int16_t value) {
-            writeInt16At(_position, value);
-            _position += 2;
-        }
-
-        void writeInt32(int32_t value) {
-            writeInt32At(_position, value);
-            _position += 4;
-        }
-
-        void writeInt64(int64_t value) {
-            writeInt64At(_position, value);
-            _position += 8;
-        }
-
-        void writeFloat(float value) {
-            writeFloatAt(_position, value);
-            _position += 4;
-        }
-
-        void writeDouble(double value) {
-            writeDoubleAt(_position, value);
-            _position += 8;
-        }
-
-        void writeString(const std::string &value) {
-            writeStringAt(_position, value);
-            _position += value.length();
-        }
-
-        void writeInt8At(size_t index, int8_t value);
-
-        void writeInt16At(size_t index, int16_t value);
-
-        void writeInt32At(size_t index, int32_t value);
-
-        void writeInt64At(size_t index, int64_t value);
-
-        void writeFloatAt(size_t index, float value);
-
-        void writeDoubleAt(size_t index, double value);
-
-        void writeStringAt(size_t index, const std::string &value);
-    };
-
-    ByteBuffer::ByteBuffer()
-        : ByteBuffer(BUFFER_DEFAULT_LENGTH) {
-    }
-
-    ByteBuffer::ByteBuffer(size_t initialLength)
-        : _buffer(nullptr), _bufferLength(initialLength), _position(0),
-          _byteOrder(ByteOrder::BO_BIG_ENDIAN) {
-        growBuffer();
-    }
-
-    ByteBuffer::~ByteBuffer() {
-        if (_buffer != nullptr) {
-            free(_buffer);
-        }
-    }
-
-    void ByteBuffer::copy(const ByteBuffer::byte *from, ByteBuffer::byte *to, size_t count) {
-        memcpy(to, from, count);
-    }
-
-    void ByteBuffer::growBuffer() {
-        if (_buffer == nullptr) {
-            // The buffer has not been allocated
-            _buffer = static_cast<byte *>(malloc(sizeof(_buffer[0]) * _bufferLength));
-
-            if (!_buffer) {
-                throw std::runtime_error("growBuffer(): malloc failed");
+        void writeAt(size_t index, const byte *data, size_t size) {
+            if (index + size >= _bufferLength) {
+                growIfNeeded(size);
             }
-            return;
+            copy(data, _buffer + index, size);
         }
 
-        // The buffer needs to be expanded
-        size_t currentLength = _bufferLength == 1 ? 2 : _bufferLength;
-        size_t fitSize = currentLength * BUFFER_GROWTH_FACTOR;
-        byte *fitBuffer = static_cast<byte *>(realloc(_buffer, sizeof(_buffer[0]) * fitSize));
-
-        if (fitBuffer != nullptr) {
-            // New buffer successfully allocated, the original buffer
-            // was freed by realloc()
-            _buffer = fitBuffer;
-            _bufferLength = fitSize;
-        } else {
-            // Nothing changed when allocation failed
-            throw std::runtime_error("growBuffer(): realloc failed");
+        bool readAt(size_t index, byte *to, size_t size) {
+            if (index + size >= _bufferLength) {
+                return false;
+            }
+            copy(_buffer + index, to, size);
+            return true;
         }
-    }
-
-    void ByteBuffer::growIfNeeded(size_t least) {
-        // Keep growing until current buffer can afford the required length.
-        while (_position + least >= _bufferLength) {
-            growBuffer();
-        }
-    }
-
-    int8_t ByteBuffer::readInt8At(size_t index) {
-        return _buffer[index];
-    }
-
-    int16_t ByteBuffer::readInt16At(size_t index) {
-        return (_byteOrder == BO_BIG_ENDIAN ? readInt16AtBE(index) : readInt16AtLE(index));
-    }
-
-    int32_t ByteBuffer::readInt32At(size_t index) {
-        return (_byteOrder == BO_BIG_ENDIAN ? readInt32AtBE(index) : readInt32AtLE(index));
-    }
-
-    int64_t ByteBuffer::readInt64At(size_t index) {
-        return (_byteOrder == BO_BIG_ENDIAN ? readInt64AtBE(index) : readInt64AtLE(index));
-    }
-
-    float ByteBuffer::readFloatAt(size_t index) {
-        return (_byteOrder == BO_BIG_ENDIAN ? readFloatAtBE(index) : readFloatAtLE(index));
-    }
-
-    double ByteBuffer::readDoubleAt(size_t index) {
-        return (_byteOrder == BO_BIG_ENDIAN ? readDoubleAtBE(index) : readDoubleAtLE(index));
-    }
-
-    std::string ByteBuffer::readStringAt(size_t index, size_t length) {
-        std::stringstream ss;
-        for (size_t i = 0; i < length; ++i) {
-            ss << _buffer[index++];
-        }
-        return ss.str();
-    }
-
-    void ByteBuffer::writeInt8At(size_t index, int8_t value) {
-        growIfNeeded(1);
-        _buffer[index] = value;
-    }
-
-    void ByteBuffer::writeInt16At(size_t index, int16_t value) {
-        growIfNeeded(2);
-        (_byteOrder == BO_BIG_ENDIAN) ? writeInt16AtBE(index, value) : writeInt16AtLE(index, value);
-    }
-
-    void ByteBuffer::writeInt32At(size_t index, int32_t value) {
-        growIfNeeded(4);
-        (_byteOrder == BO_BIG_ENDIAN) ? writeInt32AtBE(index, value) : writeInt32AtLE(index, value);
-    }
-
-    void ByteBuffer::writeInt64At(size_t index, int64_t value) {
-        growIfNeeded(8);
-        (_byteOrder == BO_BIG_ENDIAN) ? writeInt64AtBE(index, value) : writeInt64AtLE(index, value);
-    }
-
-    void ByteBuffer::writeFloatAt(size_t index, float value) {
-        growIfNeeded(4);
-        (_byteOrder == BO_BIG_ENDIAN) ? writeFloatAtBE(index, value) : writeFloatAtLE(index, value);
-    }
-
-    void ByteBuffer::writeDoubleAt(size_t index, double value) {
-        growIfNeeded(8);
-        (_byteOrder == BO_BIG_ENDIAN) ? writeDoubleAtBE(index, value) : writeDoubleAtLE(index, value);
-    }
-
-    void ByteBuffer::writeStringAt(size_t index, const std::string &value) {
-        growIfNeeded(value.length());
-        copy(reinterpret_cast<const byte *>(value.c_str()), _buffer + index, value.length());
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    int16_t ByteBuffer::readInt16AtLE(size_t index) {
-        byte b1 = _buffer[index + 1];
-        byte b0 = _buffer[index];
-
-        return ((b1 & 0xFF) << 8) | (b0 & 0xFF);
-    }
-
-    int16_t ByteBuffer::readInt16AtBE(size_t index) {
-        byte b0 = _buffer[index + 1];
-        byte b1 = _buffer[index];
-
-        return ((b1 & 0xFF) << 8) | (b0 & 0xFF);
-    }
-
-    int32_t ByteBuffer::readInt32AtLE(size_t index) {
-        byte b3 = _buffer[index + 3];
-        byte b2 = _buffer[index + 2];
-        byte b1 = _buffer[index + 1];
-        byte b0 = _buffer[index];
-
-        return (b3 << 24) | ((b2 & 0xFF) << 16) | ((b1 & 0xFF) << 8) | (b0 & 0xFF);
-    }
-
-    int32_t ByteBuffer::readInt32AtBE(size_t index) {
-        byte b0 = _buffer[index + 3];
-        byte b1 = _buffer[index + 2];
-        byte b2 = _buffer[index + 1];
-        byte b3 = _buffer[index];
-
-        return (b3 << 24) | ((b2 & 0xFF) << 16) | ((b1 & 0xFF) << 8) | (b0 & 0xFF);
-    }
-
-    int64_t ByteBuffer::readInt64AtLE(size_t index) {
-        byte b7 = _buffer[index + 7];
-        byte b6 = _buffer[index + 6];
-        byte b5 = _buffer[index + 5];
-        byte b4 = _buffer[index + 4];
-        byte b3 = _buffer[index + 3];
-        byte b2 = _buffer[index + 2];
-        byte b1 = _buffer[index + 1];
-        byte b0 = _buffer[index];
-
-        return (((int64_t) b7 & 0xFF) << 56) | (((int64_t) b6 & 0xFF) << 48) |
-               (((int64_t) b5 & 0xFF) << 40) | (((int64_t) b4 & 0xFF) << 32) |
-               (((int64_t) b3 & 0xFF) << 24) | (((int64_t) b2 & 0xFF) << 16) |
-               (((int64_t) b1 & 0xFF) << 8) | ((int64_t) b0 & 0xFF);
-    }
-
-    int64_t ByteBuffer::readInt64AtBE(size_t index) {
-        byte b0 = _buffer[index + 7];
-        byte b1 = _buffer[index + 6];
-        byte b2 = _buffer[index + 5];
-        byte b3 = _buffer[index + 4];
-        byte b4 = _buffer[index + 3];
-        byte b5 = _buffer[index + 2];
-        byte b6 = _buffer[index + 1];
-        byte b7 = _buffer[index];
-
-        return (((int64_t) b7 & 0xFF) << 56) | (((int64_t) b6 & 0xFF) << 48) |
-               (((int64_t) b5 & 0xFF) << 40) | (((int64_t) b4 & 0xFF) << 32) |
-               (((int64_t) b3 & 0xFF) << 24) | (((int64_t) b2 & 0xFF) << 16) |
-               (((int64_t) b1 & 0xFF) << 8) | ((int64_t) b0 & 0xFF);
-    }
-
-    float ByteBuffer::readFloatAtLE(size_t index) {
-        union {
-            byte bytes[4];
-            float value;
-        } bits{};
-
-        for (int i = 0; i < 4; i++) {
-            bits.bytes[i] = _buffer[index++];
-        }
-
-        return bits.value;
-    }
-
-    float ByteBuffer::readFloatAtBE(size_t index) {
-        union {
-            byte bytes[4];
-            float value;
-        } bits{};
-
-        for (int i = 3; i >= 0; i--) {
-            bits.bytes[i] = _buffer[index++];
-        }
-
-        return bits.value;
-    }
-
-    double ByteBuffer::readDoubleAtLE(size_t index) {
-        union {
-            byte bytes[8];
-            double value;
-        } bits{};
-
-        for (int i = 0; i < 8; i++) {
-            bits.bytes[i] = _buffer[index++];
-        }
-
-        return bits.value;
-    }
-
-    double ByteBuffer::readDoubleAtBE(size_t index) {
-        union {
-            byte bytes[8];
-            double value;
-        } bits{};
-
-        for (int i = 7; i >= 0; i--) {
-            bits.bytes[i] = _buffer[index++];
-        }
-
-        return bits.value;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-
-    void ByteBuffer::writeInt16AtLE(size_t index, int16_t value) {
-        _buffer[index++] = value & 0xFF;
-        _buffer[index] = (value >> 8) & 0xFF;
-    }
-
-    void ByteBuffer::writeInt16AtBE(size_t index, int16_t value) {
-        _buffer[index++] = (value >> 8) & 0xFF;
-        _buffer[index] = value & 0xFF;
-    }
-
-    void ByteBuffer::writeInt32AtLE(size_t index, int32_t value) {
-        _buffer[index++] = value & 0xFF;
-        _buffer[index++] = (value >> 8) & 0xFF;
-        _buffer[index++] = (value >> 16) & 0xFF;
-        _buffer[index] = (value >> 24) & 0xFF;
-    }
-
-    void ByteBuffer::writeInt32AtBE(size_t index, int32_t value) {
-        _buffer[index++] = (value >> 24) & 0xFF;
-        _buffer[index++] = (value >> 16) & 0xFF;
-        _buffer[index++] = (value >> 8) & 0xFF;
-        _buffer[index] = value & 0xFF;
-    }
-
-    void ByteBuffer::writeInt64AtLE(size_t index, int64_t value) {
-        _buffer[index++] = value & 0xFF;
-        _buffer[index++] = (value >> 8) & 0xFF;
-        _buffer[index++] = (value >> 16) & 0xFF;
-        _buffer[index++] = (value >> 24) & 0xFF;
-        _buffer[index++] = (value >> 32) & 0xFF;
-        _buffer[index++] = (value >> 40) & 0xFF;
-        _buffer[index++] = (value >> 48) & 0xFF;
-        _buffer[index] = (value >> 56) & 0xFF;
-    }
-
-    void ByteBuffer::writeInt64AtBE(size_t index, int64_t value) {
-        _buffer[index++] = (value >> 56) & 0xFF;
-        _buffer[index++] = (value >> 48) & 0xFF;
-        _buffer[index++] = (value >> 40) & 0xFF;
-        _buffer[index++] = (value >> 32) & 0xFF;
-        _buffer[index++] = (value >> 24) & 0xFF;
-        _buffer[index++] = (value >> 16) & 0xFF;
-        _buffer[index++] = (value >> 8) & 0xFF;
-        _buffer[index] = value & 0xFF;
-    }
-
-    void ByteBuffer::writeFloatAtLE(size_t index, float value) {
-        union {
-            byte bytes[4];
-            float value;
-        } bits{};
-
-        bits.value = value;
-        for (int i = 0; i < 4; i++) {
-            _buffer[index++] = bits.bytes[i];
-        }
-    }
-
-    void ByteBuffer::writeFloatAtBE(size_t index, float value) {
-        union {
-            byte bytes[4];
-            float value;
-        } bits{};
-
-        bits.value = value;
-        for (int i = 3; i >= 0; i--) {
-            _buffer[index++] = bits.bytes[i];
-        }
-    }
-
-    void ByteBuffer::writeDoubleAtLE(size_t index, double value) {
-        union {
-            byte bytes[8];
-            double value;
-        } bits{};
-
-        bits.value = value;
-        for (int i = 0; i < 8; i++) {
-            _buffer[index++] = bits.bytes[i];
-        }
-    }
-
-    void ByteBuffer::writeDoubleAtBE(size_t index, double value) {
-        union {
-            byte bytes[8];
-            double value;
-        } bits{};
-
-        bits.value = value;
-        for (int i = 7; i >= 0; i--) {
-            _buffer[index++] = bits.bytes[i];
-        }
-    }
+    };
 }
 
 namespace kiva::huffman {
@@ -804,19 +353,19 @@ namespace kiva::huffman {
         size_t _count = 0;
 
     public:
-        void writeAll(FILE *fp) {
+        void writeAll(ByteBuffer &byteBuffer) {
             if (_count != 0) {
-                fwrite(&_buffer, sizeof(_buffer), 1, fp);
+                byteBuffer.writeU8(_buffer);
                 _buffer = 0;
                 _count = 0;
             }
         }
 
-        void writeBit(FILE *fp, bool bit) {
+        void writeBit(ByteBuffer &byteBuffer, bool bit) {
             _buffer <<= 1U;
             _buffer |= bit ? 1U : 0U;
             if (++_count == 8) {
-                writeAll(fp);
+                writeAll(byteBuffer);
             }
         }
     };
@@ -945,8 +494,6 @@ namespace kiva::huffman {
         using TreeHeap = MinHeap<HuffmanTree *, TABLE_SIZE, HuffmanTree::Comparator>;
         using CodeDict = Array<CodePoint, TABLE_SIZE>;
         using HuffmanTable = Array<int, TABLE_SIZE>;
-        using ArchiveFile = Pair<String, HuffmanTable>;
-        using ArchiveFileStream = std::list<ArchiveFile>;
 
     private:
         /**
@@ -979,24 +526,21 @@ namespace kiva::huffman {
          * @param dictionary code point frequency
          * @return true if success
          */
-        static bool loadDictionary(const String &filePath, CodeDict &dictionary) {
-            FILE *fp = fopen(filePath.c_str(), "rb");
-
-            if (fp == nullptr) {
+        static bool loadDictionary(const ByteBuffer::byte *bytes, size_t size, CodeDict &dictionary) {
+            if (bytes == nullptr) {
                 return false;
             }
 
-            int ch = 0;
-            while (!feof(fp) && (ch = fgetc(fp)) != EOF) {
-                ++dictionary[ch];
+            auto v = bytes;
+            for (size_t i = 0; i < size; ++i) {
+                ++dictionary[*v++];
             }
 
-            fclose(fp);
             return true;
         }
 
-        static void generateHuffmanTable(HuffmanTable &table, HuffmanTree *tree,
-                                         short code, int depth) {
+        static void genHuffmanTable(HuffmanTable &table, HuffmanTree *tree,
+                                    short code, int depth) {
             if (tree == nullptr) {
                 return;
             }
@@ -1009,8 +553,8 @@ namespace kiva::huffman {
 
             short left = (code << 1) | 0;
             short right = (code << 1) | 1;
-            generateHuffmanTable(table, tree->getLeft(), left, depth + 1);
-            generateHuffmanTable(table, tree->getRight(), right, depth + 1);
+            genHuffmanTable(table, tree->getLeft(), left, depth + 1);
+            genHuffmanTable(table, tree->getRight(), right, depth + 1);
         }
 
         /**
@@ -1018,15 +562,15 @@ namespace kiva::huffman {
          * @param tree Huffman tree
          * @return Huffman table
          */
-        static HuffmanTable generateHuffmanTable(HuffmanTree *tree) {
+        static HuffmanTable genHuffmanTable(HuffmanTree *tree) {
             HuffmanTable table{0};
-            generateHuffmanTable(table, tree->getLeft(), 0, 1);
-            generateHuffmanTable(table, tree->getRight(), 1, 1);
+            genHuffmanTable(table, tree->getLeft(), 0, 1);
+            genHuffmanTable(table, tree->getRight(), 1, 1);
             return table;
         }
 
-        static HuffmanTable encodeDictionary(const CodeDict &dictionary) {
-            assert(dictionary.size() < UINT8_MAX + 1);
+        static HuffmanTable genHuffmanTable(const CodeDict &dictionary) {
+            assert(dictionary.size() == UINT8_MAX + 1);
 
             TreeHeap heap;
             for (CodePoint ch = 0; ch < dictionary.size(); ++ch) {
@@ -1037,6 +581,12 @@ namespace kiva::huffman {
                 heap.push(tree);
             }
 
+            // the dictionary contains nothing
+            // so the huffman table is all-zero
+            if (heap.empty()) {
+                return HuffmanTable();
+            }
+
             while (heap.size() > 1) {
                 auto one = heap.pop();
                 auto two = heap.pop();
@@ -1045,212 +595,268 @@ namespace kiva::huffman {
             }
 
             auto tree = heap.pop();
-            auto &&table = generateHuffmanTable(tree);
+            auto &&table = genHuffmanTable(tree);
             deleteTree(tree);
             return table;
         }
 
-        static ArchiveFileStream encodeFiles(const std::vector<String> &files) {
-            ArchiveFileStream archive;
-            CodeDict dictionary{0};
-
-            for (auto &&f : files) {
-                resetCodeDict(dictionary);
-                if (!loadDictionary(f, dictionary)) {
-                    fprintf(stderr, "compressor: %s: no such file or directory\n", f.c_str());
-                    continue;
-                }
-                archive.emplace_back(f, encodeDictionary(dictionary));
-            }
-
-            return std::move(archive);
-        }
-
-    private:
-        ByteBuffer _byteBuffer;
-
-    private:
-        void writeHeader(const EntryHeader &header) {
-            fwrite(&header, sizeof(EntryHeader), 1, fp);
-        }
-
-        void writeFile(FILE *fp, const HuffmanTable &table, FILE *fileIn) {
-            int ch = 0;
-
+        static void writeEncoded(ByteBuffer &byteBuffer, const HuffmanTable &table,
+                                 const ByteBuffer::byte *bytes, size_t size) {
             BitWriter writer;
-            while (!feof(fileIn) && (ch = fgetc(fileIn)) != EOF) {
-                int comb = table[ch];
+
+            auto v = bytes;
+            for (size_t j = 0; j < size; ++j) {
+                int comb = table[*v++];
+
                 auto bitCount = static_cast<short>(comb >> 16);
                 auto bits = static_cast<short>(comb & 0xffff);
 
                 for (int i = bitCount - 1; i >= 0; i--) {
                     bool b = (bits & (1 << i)) != 0;
-                    writer.writeBit(fp, b);
+                    writer.writeBit(byteBuffer, b);
                 }
             }
 
-            writer.writeAll(fp);
+            writer.writeAll(byteBuffer);
         }
 
     public:
+        static bool compressContent(const ByteBuffer::byte *bytes, size_t size, ByteBuffer &result) {
+            CodeDict dict{0};
+            if (!loadDictionary(bytes, size, dict)) {
+                return false;
+            }
+
+            auto &&table = genHuffmanTable(dict);
+            if (!checkTable(table)) {
+                return false;
+            }
+
+            // let's encode the buffer
+
+            // currently we don't know the size of compressed data
+            // so we cannot write header here
+            // we record the header position and write it later
+            size_t headerPosition = result.reserve(sizeof(EntryHeader));
+
+            // write the compressed data
+            size_t compressedStart = result.getPosition();
+            writeEncoded(result, table, bytes, size);
+
+            // fill header fields
+            // note that: we won't fill the filePath field
+            size_t compressedEnd = result.getPosition();
+            EntryHeader header{};
+            header.totalBytes = static_cast<int>(compressedEnd - compressedStart);
+            memcpy(header.huffmanTable, table.data(), table.size());
+
+            // write the real header
+            result.writeAt(headerPosition,
+                reinterpret_cast<const ByteBuffer::byte *>(&header),
+                sizeof(EntryHeader));
+
+            return true;
+        }
+
+    private:
+        std::vector<String> _files;
+        String _outputFile;
+
+    public:
+        HfzCompressor() = default;
+
+        explicit HfzCompressor(String outputFile)
+            : _outputFile(std::move(outputFile)) {
+        }
+
+        ~HfzCompressor() = default;
+
+        const String &getOutputFile() const {
+            return _outputFile;
+        }
+
+        void setOutputFile(const String &outputFile) {
+            _outputFile = outputFile;
+        }
+
+        void addFile(const String &file) {
+            _files.push_back(file);
+        }
+
+        const std::vector<String> &getFiles() const {
+            return _files;
+        }
+
+        bool compress() {
+            ByteBuffer outputBuffer;
+            ByteBuffer inputBuffer;
+
+            // file magic
+            outputBuffer.write(HFZ_MAGIC, HFZ_MAGIC_SIZE);
+
+            int errors = 0;
+
+            printf("Creating %s\n", _outputFile.c_str());
+
+            for (auto &&f : _files) {
+                FILE *fileIn = fopen(f.c_str(), "rb");
+                if (fileIn == nullptr) {
+                    fprintf(stderr, "compress: failed to open file for read %s: %s\n",
+                        f.c_str(), strerror(errno));
+                    ++errors;
+                    continue;
+                }
+
+                fseek(fileIn, 0, SEEK_END);
+                long fileSize = ftell(fileIn);
+                fseek(fileIn, 0, SEEK_SET);
+
+                auto bytes = new ByteBuffer::byte[fileSize];
+                fread(bytes, fileSize, 1, fileIn);
+
+                inputBuffer.rewind();
+                if (!compressContent(bytes, fileSize, inputBuffer)) {
+                    fprintf(stderr, "compress: failed to compress file content: %s\n",
+                        f.c_str());
+                    ++errors;
+                    delete[] bytes;
+                    continue;
+                }
+
+                delete[] bytes;
+
+                // write file name to header
+                size_t offset = offsetof(EntryHeader, filePath);
+                inputBuffer.writeAt(offset,
+                    reinterpret_cast<const ByteBuffer::byte *>(f.c_str()),
+                    f.size());
+
+                // write compressed entry to output buffer
+                auto &&compressed = inputBuffer.getBuffer();
+                outputBuffer.write(compressed._bytes, compressed._used);
+
+                if (fileSize > 0) {
+                    size_t compressedSize = inputBuffer.getPosition();
+                    double rate = 1.0 * compressedSize / fileSize;
+                    printf("  adding: %s (deflated %.0lf%%)\n", f.c_str(), rate * 100);
+                } else {
+                    printf("  adding: %s (empty file)\n", f.c_str());
+                }
+            }
+
+            FILE *fp = fopen(_outputFile.c_str(), "wb");
+
+            if (fp == nullptr) {
+                fprintf(stderr, "compress: failed to open file for write %s: %s\n",
+                    _outputFile.c_str(), strerror(errno));
+                return false;
+            }
+
+            auto &&sizedBuffer = outputBuffer.getBuffer();
+            fwrite(sizedBuffer._bytes, sizedBuffer._used, 1, fp);
+
+            fclose(fp);
+            return !errors;
+        }
+
+        bool operator()() {
+            return compress();
+        }
     };
 
-//    bool compress(const String &outputFile, const std::vector<String> &files) {
-//        FILE *fp = fopen(outputFile.c_str(), "wb");
-//        if (fp == nullptr) {
-//            fprintf(stderr, "encode: failed to open file for write %s: %s\n",
-//                outputFile.c_str(), strerror(errno));
-//            return false;
-//        }
-//
-//        // global file header
-//        fwrite(EntryHeader::MAGIC, sizeof(EntryHeader::MAGIC), 1, fp);
-//
-//        int errors = 0;
-//        Archive archive = encodeFiles(files);
-//        EntryHeader header;
-//
-//        for (auto &&item : archive) {
-//            auto &&f = item.first;
-//            auto &&table = item.second;
-//
-//            if (!checkTable(table)) {
-//                fprintf(stderr, "encode: table corrupted: %s\n", f.c_str());
-//                ++errors;
-//                continue;
-//            }
-//
-//            printf("Adding %s", f.c_str());
-//
-//            FILE *fileIn = fopen(f.c_str(), "rb");
-//            if (fileIn == nullptr) {
-//                fprintf(stderr, "encode: failed to open file for read %s: %s\n",
-//                    f.c_str(), strerror(errno));
-//                ++errors;
-//                continue;
-//            }
-//
-//            // record header position and write an placeholder
-//            long headerPosition = ftell(fp);
-//            memset(&header, '\0', sizeof(EntryHeader));
-//            writeHeader(fp, header);
-//
-//            // record the start position of compressed data
-//            long startPosition = ftell(fp);
-//            writeFile(fp, table, fileIn);
-//            fclose(fileIn);
-//
-//            // calculate the compressed size and write the real header
-//            long endPosition = ftell(fp);
-//
-//            header.totalBytes = static_cast<int>(endPosition - startPosition);
-//            strncpy(header.filePath, f.c_str(), sizeof(header.filePath));
-//            memcpy(header.huffmanTable, table.data(), table.size());
-//
-//            // go to the saved header position
-//            fseek(fp, headerPosition, SEEK_SET);
-//            writeHeader(fp, header);
-//
-//            // go back to the end of the stream
-//            fseek(fp, 0, SEEK_END);
-//
-//            printf(", compressed size: %d (bytes)\n", header.totalBytes);
-//        }
-//
-//        fclose(fp);
-//        return !errors;
-//    }
-//
-//    bool decompress(const String &compressedFile, const String &outputDir) {
-//        FILE *fp = fopen(compressedFile.c_str(), "rb");
-//        if (fp == nullptr) {
-//            fprintf(stderr, "decompress: failed to open file %s for read: %s\n",
-//                compressedFile.c_str(), strerror(errno));
-//            return false;
-//        }
-//
-//        if (!mkdirR(outputDir, 0755)) {
-//            fprintf(stderr, "decompress: failed to mkdir %s for read: %s\n",
-//                outputDir.c_str(), strerror(errno));
-//            fclose(fp);
-//            return false;
-//        }
-//
-//        // check magic
-//        unsigned char magic[MAGIC_SIZE] = {0};
-//        fread(magic, MAGIC_SIZE, 1, fp);
-//        if (memcmp(magic, EntryHeader::MAGIC, MAGIC_SIZE) != 0) {
-//            fprintf(stderr, "decompress: .hfz file magic not found\n");
-//            fclose(fp);
-//            return false;
-//        }
-//
-//        EntryHeader header;
-//        while (!feof(fp)) {
-//            memset(&header, '\0', sizeof(EntryHeader));
-//            if (fread(&header, sizeof(EntryHeader), 1, fp) != 1) {
-//                break;
-//            }
-//
-//            printf("Extracting %s, compressed size: %d\n",
-//                header.filePath, header.totalBytes);
-//
-//            fseek(fp, header.totalBytes, SEEK_CUR);
-//        }
-//
-//        fclose(fp);
-//        return true;
-//    }
+
+    bool decompress(const String &compressedFile, const String &outputDir) {
+        FILE *fp = fopen(compressedFile.c_str(), "rb");
+        if (fp == nullptr) {
+            fprintf(stderr, "decompress: failed to open file %s for read: %s\n",
+                compressedFile.c_str(), strerror(errno));
+            return false;
+        }
+
+        if (!HfzUtils::mkdirR(outputDir, 0755)) {
+            fprintf(stderr, "decompress: failed to mkdir %s for read: %s\n",
+                outputDir.c_str(), strerror(errno));
+            fclose(fp);
+            return false;
+        }
+
+        // check magic
+        unsigned char magic[HFZ_MAGIC_SIZE] = {0};
+        fread(magic, HFZ_MAGIC_SIZE, 1, fp);
+        if (memcmp(magic, HFZ_MAGIC, HFZ_MAGIC_SIZE) != 0) {
+            fprintf(stderr, "decompress: .hfz file magic not found\n");
+            fclose(fp);
+            return false;
+        }
+
+        EntryHeader header;
+        while (!feof(fp)) {
+            memset(&header, '\0', sizeof(EntryHeader));
+            if (fread(&header, sizeof(EntryHeader), 1, fp) != 1) {
+                break;
+            }
+
+            printf("Extracting %s, compressed size: %d\n",
+                header.filePath, header.totalBytes);
+
+            fseek(fp, header.totalBytes, SEEK_CUR);
+        }
+
+        fclose(fp);
+        return true;
+    }
 
 }
 
-//int main(int argc, const char **argv) {
-//    if (argc < 2) {
-//        fprintf(stderr, "Usage: %s <command> [args...]\n", argv[0]);
-//        fprintf(stderr, "  where command are one of the followings:\n");
-//        fprintf(stderr, "    c <out.hfz> <file [, file...]>\n");
-//        fprintf(stderr, "    d <file.hfz> <out-dir>\n");
-//        return 1;
-//    }
-//
-//    --argc;
-//    ++argv;
-//
-//    if (strcmp(argv[0], "c") == 0) {
-//        ++argv;
-//        --argc;
-//        if (argc == 0) {
-//            fprintf(stderr, "compress: No output file name specified\n");
-//            return 1;
-//        }
-//
-//        const char *outputFile = *argv++;
-//        std::vector<String> files;
-//        while (*argv) {
-//            files.emplace_back(*argv++);
-//        }
-//
-//        if (!compress(outputFile, files)) {
-//            fprintf(stderr, "compress: error encountered\n");
-//            return 1;
-//        }
-//
-//    } else if (strcmp(argv[0], "d") == 0) {
-//        ++argv;
-//        --argc;
-//        if (argc == 0) {
-//            fprintf(stderr, "decompress: No .hfz file specified\n");
-//            return 1;
-//        }
-//
-//        const char *compressed = argv[0];
-//        const char *outDir = argc == 2 ? argv[1] : ".";
-//
-//        if (!decompress(compressed, outDir)) {
-//            fprintf(stderr, "decompress: error encountered\n");
-//            return 1;
-//        }
-//    }
-//
-//    return 0;
-//}
+int main(int argc, const char **argv) {
+    using namespace kiva::huffman;
+
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <command> [args...]\n", argv[0]);
+        fprintf(stderr, "  where command are one of the followings:\n");
+        fprintf(stderr, "    c <out.hfz> <file [, file...]>\n");
+        fprintf(stderr, "    d <file.hfz> <out-dir>\n");
+        return 1;
+    }
+
+    --argc;
+    ++argv;
+
+    if (strcmp(argv[0], "c") == 0) {
+        ++argv;
+        --argc;
+        if (argc == 0) {
+            fprintf(stderr, "compress: No output file name specified\n");
+            return 1;
+        }
+
+        HfzCompressor compressor(*argv++);
+
+        while (*argv) {
+            compressor.addFile(*argv++);
+        }
+
+        if (!compressor()) {
+            fprintf(stderr, "compress: error encountered\n");
+            return 1;
+        }
+
+    } else if (strcmp(argv[0], "d") == 0) {
+        ++argv;
+        --argc;
+        if (argc == 0) {
+            fprintf(stderr, "decompress: No .hfz file specified\n");
+            return 1;
+        }
+
+        const char *compressed = argv[0];
+        const char *outDir = argc == 2 ? argv[1] : ".";
+
+        if (!decompress(compressed, outDir)) {
+            fprintf(stderr, "decompress: error encountered\n");
+            return 1;
+        }
+    }
+
+    return 0;
+}
