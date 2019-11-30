@@ -169,6 +169,8 @@ namespace kiva::huffman {
     using Pair = std::pair<T, U>;
     using String = std::string;
     using CodePoint = int;
+    using HuffmanTable = Array<int, TABLE_SIZE>;
+    using HuffmanInvTable = std::unordered_map<short, unsigned char>;
 
     /**
      * The minimal heap whose root element is always the minimal value
@@ -493,7 +495,6 @@ namespace kiva::huffman {
         // Type alias to save typing time
         using TreeHeap = MinHeap<HuffmanTree *, TABLE_SIZE, HuffmanTree::Comparator>;
         using CodeDict = Array<CodePoint, TABLE_SIZE>;
-        using HuffmanTable = Array<int, TABLE_SIZE>;
 
     private:
         /**
@@ -620,6 +621,25 @@ namespace kiva::huffman {
             writer.writeAll(byteBuffer);
         }
 
+        static HuffmanInvTable genHuffmanInvTable(const HuffmanTable &table) {
+            HuffmanInvTable invTable;
+            for (size_t i = 0; i < table.size(); ++i) {
+                int comb = table[i];
+                if (comb == 0) {
+                    continue;
+                }
+
+//                auto bitCount = static_cast<short>(comb >> 16);
+                auto bits = static_cast<short>(comb & 0xffff);
+
+                invTable[bits] = i;
+//                for (int p = bitCount - 1; p >= 0; p--) {
+//                    bool b = (bits & (1 << p)) != 0;
+//                }
+            }
+            return invTable;
+        }
+
     public:
         static bool compressContent(const ByteBuffer::byte *bytes, size_t size, ByteBuffer &result) {
             CodeDict dict{0};
@@ -658,7 +678,26 @@ namespace kiva::huffman {
             return true;
         }
 
-        static bool decompressContent(const ByteBuffer::byte *bytes, size_t size, ByteBuffer &result) {
+        static bool decompressContent(const ByteBuffer::byte *bytes, size_t size,
+                                      const HuffmanTable &table, ByteBuffer &result) {
+            auto &&inv = genHuffmanInvTable(table);
+
+            auto v = bytes;
+            short bits = 0;
+
+            for (size_t i = 0; i < size; ++i) {
+                auto ch = *v++;
+                for (int p = 7; p >= 0; p--) {
+                    bool b = (ch & (1 << p)) != 0;
+                    bits = (bits << 1) | (b ? 1 : 0);
+
+                    if (inv.find(bits) != inv.end()) {
+                        result.writeU8(inv[bits]);
+                        bits = 0;
+                    }
+                }
+            }
+
             return true;
         }
     };
@@ -788,9 +827,19 @@ namespace kiva::huffman {
             }
 
             _inflateBuffer.rewind();
-            bool r = HfzCommand::decompressContent(nullptr, 0, _inflateBuffer);
+            HuffmanTable table{0};
+            memcpy(table.data(), _entryHeader.huffmanTable, table.size());
+            bool r = HfzCommand::decompressContent(nullptr, 0,
+                table, _inflateBuffer);
             delete[] bytes;
             return r;
+        }
+
+        void discard() {
+            if (_inflated || _stream == nullptr) {
+                return;
+            }
+            fseek(_stream, getCompressedSize(), SEEK_CUR);
         }
 
     public:
@@ -837,9 +886,12 @@ namespace kiva::huffman {
     private:
         bool next() {
             HfzEntry *entry = _currentEntry.get();
-
-            if (feof(_stream)) {
+            if (_stream == nullptr || feof(_stream) || entry == nullptr) {
                 return false;
+            }
+
+            if (!entry->_inflated) {
+                entry->discard();
             }
 
             memset(&entry->_entryHeader, '\0', sizeof(HfzEntryHeader));
@@ -852,8 +904,8 @@ namespace kiva::huffman {
         }
 
     public:
-        explicit HfzIterator(FILE *stream)
-            : _stream(stream), _currentEntry(new HfzEntry) {
+        explicit HfzIterator(FILE *stream, HfzEntry *entry)
+            : _stream(stream), _currentEntry(entry) {
             next();
         }
 
@@ -865,8 +917,20 @@ namespace kiva::huffman {
             return *this;
         }
 
+        bool operator==(const HfzIterator &other) {
+            return this->_stream == other._stream
+                   && this->_currentEntry == other._currentEntry;
+        }
+
+        bool operator!=(const HfzIterator &other) {
+            return !(*this == other);
+        }
+
         HfzIterator &operator++() {
-            next();
+            if (!next()) {
+                this->_stream = nullptr;
+                this->_currentEntry = nullptr;
+            }
             return *this;
         }
 
@@ -882,10 +946,46 @@ namespace kiva::huffman {
     class HfzArchive {
     private:
         String _hfzFile;
-        FILE *_stream;
+        std::shared_ptr<FILE> _stream;
 
     public:
+        explicit HfzArchive(String hfzFile)
+            : _hfzFile(std::move(hfzFile)) {
+        }
 
+        const String &getHfzFile() const {
+            return _hfzFile;
+        }
+
+        void open() {
+            FILE *fp = fopen(_hfzFile.c_str(), "rb");
+            if (fp == nullptr) {
+                throw std::runtime_error("failed to open file "
+                                         + _hfzFile + " for read: "
+                                         + strerror(errno));
+                return;
+            }
+
+            _stream = std::shared_ptr<FILE>(fp, std::fclose);
+
+            // check magic
+            unsigned char magic[HFZ_MAGIC_SIZE] = {0};
+            fread(magic, HFZ_MAGIC_SIZE, 1, fp);
+            if (memcmp(magic, HFZ_MAGIC, HFZ_MAGIC_SIZE) != 0) {
+                throw std::runtime_error(".hfz file magic not found in " + _hfzFile);
+            }
+        }
+
+        HfzIterator begin() {
+            if (_stream == nullptr) {
+                return end();
+            }
+            return HfzIterator(_stream.get(), new HfzEntry);
+        }
+
+        HfzIterator end() {
+            return HfzIterator(nullptr, nullptr);
+        }
     };
 
     class HfzDecompressor {
@@ -914,49 +1014,18 @@ namespace kiva::huffman {
             _outputDir = outputDir;
         }
 
-        bool decompress() {
-            FILE *fp = fopen(_hfzFile.c_str(), "rb");
-            if (fp == nullptr) {
-                fprintf(stderr, "decompress: failed to open file %s for read: %s\n",
-                    _hfzFile.c_str(), strerror(errno));
-                return false;
+        void decompress() {
+            HfzArchive archive(_hfzFile);
+            archive.open();
+
+            printf("Extracting %s\n", _hfzFile.c_str());
+            for (auto &&item : archive) {
+                printf("  inflating: %s\n", item->getEntryFilePath().c_str());
             }
-
-            if (!HfzUtils::mkdirR(_outputDir, 0755)) {
-                fprintf(stderr, "decompress: failed to mkdir %s for read: %s\n",
-                    _outputDir.c_str(), strerror(errno));
-                fclose(fp);
-                return false;
-            }
-
-            // check magic
-            unsigned char magic[HFZ_MAGIC_SIZE] = {0};
-            fread(magic, HFZ_MAGIC_SIZE, 1, fp);
-            if (memcmp(magic, HFZ_MAGIC, HFZ_MAGIC_SIZE) != 0) {
-                fprintf(stderr, "decompress: .hfz file magic not found\n");
-                fclose(fp);
-                return false;
-            }
-
-            HfzEntryHeader header;
-            while (!feof(fp)) {
-                memset(&header, '\0', sizeof(HfzEntryHeader));
-                if (fread(&header, sizeof(HfzEntryHeader), 1, fp) != 1) {
-                    break;
-                }
-
-                printf("Extracting %s, compressed size: %d\n",
-                    header.filePath, header.compressedSize);
-
-                fseek(fp, header.compressedSize, SEEK_CUR);
-            }
-
-            fclose(fp);
-            return true;
         }
 
-        bool operator()() {
-            return decompress();
+        void operator()() {
+            decompress();
         }
     };
 }
@@ -1007,8 +1076,10 @@ int main(int argc, const char **argv) {
             decompressor.setOutputDir(argv[1]);
         }
 
-        if (!decompressor()) {
-            fprintf(stderr, "decompress: error encountered\n");
+        try {
+            decompressor();
+        } catch (std::runtime_error &e) {
+            fprintf(stderr, "decompress: error encountered: %s\n", e.what());
             return 1;
         }
     }
