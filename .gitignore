@@ -40,4 +40,5 @@ java-out
 CMakeFiles/
 tests/work*.cpp
 tests/review.cpp
-
+tests/model*.cpp
+data.csv
