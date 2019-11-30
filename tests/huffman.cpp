@@ -482,7 +482,7 @@ namespace kiva::huffman {
     /**
      * Compressed entry header
      */
-    struct EntryHeader {
+    struct HfzEntryHeader {
         int compressedSize = 0;
         char filePath[PATH_MAX] = {0};
         int huffmanTable[TABLE_SIZE] = {0};
@@ -637,7 +637,7 @@ namespace kiva::huffman {
             // currently we don't know the size of compressed data
             // so we cannot write header here
             // we record the header position and write it later
-            size_t headerPosition = result.reserve(sizeof(EntryHeader));
+            size_t headerPosition = result.reserve(sizeof(HfzEntryHeader));
 
             // write the compressed data
             size_t compressedStart = result.getPosition();
@@ -646,14 +646,14 @@ namespace kiva::huffman {
             // fill header fields
             // note that: we won't fill the filePath field
             size_t compressedEnd = result.getPosition();
-            EntryHeader header{};
+            HfzEntryHeader header{};
             header.compressedSize = static_cast<int>(compressedEnd - compressedStart);
             memcpy(header.huffmanTable, table.data(), table.size());
 
             // write the real header
             result.writeAt(headerPosition,
                 reinterpret_cast<const ByteBuffer::byte *>(&header),
-                sizeof(EntryHeader));
+                sizeof(HfzEntryHeader));
 
             return true;
         }
@@ -732,7 +732,7 @@ namespace kiva::huffman {
                 delete[] bytes;
 
                 // write file name to header
-                size_t offset = offsetof(EntryHeader, filePath);
+                size_t offset = offsetof(HfzEntryHeader, filePath);
                 inputBuffer.writeAt(offset,
                     reinterpret_cast<const ByteBuffer::byte *>(f.c_str()),
                     f.size());
@@ -774,7 +774,7 @@ namespace kiva::huffman {
         friend class HfzIterator;
 
     private:
-        EntryHeader _entryHeader{};
+        HfzEntryHeader _entryHeader{};
         ByteBuffer _inflateBuffer;
         bool _inflated = false;
         FILE *_stream = nullptr;
@@ -842,8 +842,8 @@ namespace kiva::huffman {
                 return false;
             }
 
-            memset(&entry->_entryHeader, '\0', sizeof(EntryHeader));
-            if (fread(&entry->_entryHeader, sizeof(EntryHeader), 1, _stream) != 1) {
+            memset(&entry->_entryHeader, '\0', sizeof(HfzEntryHeader));
+            if (fread(&entry->_entryHeader, sizeof(HfzEntryHeader), 1, _stream) != 1) {
                 return false;
             }
 
@@ -938,10 +938,10 @@ namespace kiva::huffman {
                 return false;
             }
 
-            EntryHeader header;
+            HfzEntryHeader header;
             while (!feof(fp)) {
-                memset(&header, '\0', sizeof(EntryHeader));
-                if (fread(&header, sizeof(EntryHeader), 1, fp) != 1) {
+                memset(&header, '\0', sizeof(HfzEntryHeader));
+                if (fread(&header, sizeof(HfzEntryHeader), 1, fp) != 1) {
                     break;
                 }
 
