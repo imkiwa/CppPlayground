@@ -2,15 +2,16 @@
 // Created by kiva on 2019/11/29.
 //
 
-#include <unordered_map>
-#include <vector>
-#include <array>
-#include <list>
-#include <string>
-#include <utility>
 #include <set>
+#include <list>
+#include <array>
 #include <cerrno>
+#include <vector>
+#include <string>
 #include <sstream>
+#include <utility>
+#include <unordered_map>
+
 #include <sys/stat.h>
 
 constexpr size_t MAGIC_SIZE = 4;
@@ -29,6 +30,12 @@ using HuffmanTable = Array<int, TABLE_SIZE>;
 using ArchiveFile = Pair<String, HuffmanTable>;
 using Archive = std::list<ArchiveFile>;
 
+/**
+ * The minimal heap whose root element is always the minimal value
+ * @tparam T Heap object type
+ * @tparam S Heap size
+ * @tparam Comparator Comparator used in sort
+ */
 template <typename T, size_t S, typename Comparator>
 class MinHeap {
 private:
@@ -110,6 +117,9 @@ public:
     }
 };
 
+/**
+ * The huffman tree
+ */
 class HuffmanTree {
 public:
     struct Comparator {
@@ -189,6 +199,14 @@ public:
     }
 };
 
+/**
+ * The minimal unit of memory operation in C/C++
+ * is byte (unsigned char), but we want to write
+ * contents bit-by-bit.
+ *
+ * This is kind of a bit buffer that write a byte
+ * (namely 8 bits) to memory at one time.
+ */
 class BitWriter {
 private:
     unsigned char _buffer = 0;
@@ -212,8 +230,12 @@ public:
     }
 };
 
+// Type alias to save typing time
 using TreeHeap = MinHeap<HuffmanTree *, TABLE_SIZE, HuffmanTree::Comparator>;
 
+/**
+ * Compressed entry header
+ */
 struct Header {
     static constexpr unsigned char MAGIC[MAGIC_SIZE] = {0xde, 0xad, 0xfa, 0xce};
     int totalBytes = 0;
@@ -221,6 +243,12 @@ struct Header {
     int huffmanTable[TABLE_SIZE] = {0};
 };
 
+/**
+ * Recursivly create a directory, including its parent directory
+ * @param cpath Directory to create
+ * @param mode Directory permission
+ * @return true if success
+ */
 bool mkdirR(const String &cpath, mode_t mode) {
     char *path = strdup(cpath.c_str());
     if (!path) {
@@ -266,7 +294,6 @@ void dumpTree(HuffmanTree *tree, const String &code, int depth) {
         return;
     }
 
-
     if (tree->isCodePoint()) {
         printf("%*sCodePointNode: { %d -> %s }\n", depth * 2, " ",
             tree->getCodePoint(), code.c_str());
@@ -292,6 +319,11 @@ void dumpTree(HuffmanTree *tree) {
     printf("}\n");
 }
 
+/**
+ * Check whether the huffman table is valid to decompress
+ * @param table Huffman table
+ * @return true if valid
+ */
 bool checkTable(const HuffmanTable &table) {
     std::unordered_map<std::string, int> reversed;
     int expectedSize = 0;
@@ -334,6 +366,12 @@ void deleteTree(HuffmanTree *tree) {
     delete tree;
 }
 
+/**
+ * Calculate code point frequency of a file
+ * @param filePath File to calculate
+ * @param dictionary code point frequency
+ * @return true if success
+ */
 bool loadDictionary(const String &filePath, CodeDict &dictionary) {
     FILE *fp = fopen(filePath.c_str(), "rb");
 
@@ -367,6 +405,11 @@ void generateHuffmanTable(HuffmanTable &table, HuffmanTree *tree, short code, in
     generateHuffmanTable(table, tree->getRight(), right, depth + 1);
 }
 
+/**
+ * Generate a map from code point to huffman encoding
+ * @param tree Huffman tree
+ * @return Huffman table
+ */
 HuffmanTable generateHuffmanTable(HuffmanTree *tree) {
     HuffmanTable table{0};
     generateHuffmanTable(table, tree->getLeft(), 0, 1);
@@ -535,8 +578,9 @@ bool decompress(const String &compressedFile, const String &outputDir) {
         printf("Extracting %s, compressed size: %d\n",
             header.filePath, header.totalBytes);
 
-        auto buf = new unsigned char[header.totalBytes];
-        fread(buf, header.totalBytes, 1, fp);
+        fseek(fp, header.totalBytes, SEEK_CUR);
+//        auto buf = new unsigned char[header.totalBytes];
+//        fread(buf, header.totalBytes, 1, fp);
     }
 
     fclose(fp);
