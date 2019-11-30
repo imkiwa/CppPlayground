@@ -628,7 +628,7 @@ namespace kiva::huffman {
     template <typename T, size_t S, typename Comparator>
     class MinHeap {
     private:
-        Array<T, S> _data;
+        Array<T, S> _data = {0};
         size_t _position = 0;
         Comparator _comparator;
 
@@ -825,7 +825,7 @@ namespace kiva::huffman {
             std::unordered_map<std::string, int> reversed;
             int expectedSize = 0;
 
-            for (int i = 0; i < size; ++i) {
+            for (size_t i = 0; i < size; ++i) {
                 int comb = table[i];
                 if (comb == 0) {
                     continue;
@@ -836,8 +836,8 @@ namespace kiva::huffman {
 
                 std::stringstream ss;
 
-                for (int i = bitCount - 1; i >= 0; i--) {
-                    bool b = (bits & (1 << i)) != 0;
+                for (int p = bitCount - 1; p >= 0; p--) {
+                    bool b = (bits & (1 << p)) != 0;
                     ss << static_cast<char>('0' + b);
                 }
 
@@ -855,7 +855,7 @@ namespace kiva::huffman {
          * @param mode Directory permission
          * @return true if success
          */
-        bool mkdirR(const String &cpath, mode_t mode) {
+        static bool mkdirR(const String &cpath, mode_t mode) {
             char *path = strdup(cpath.c_str());
             if (!path) {
                 return false;
@@ -1024,6 +1024,8 @@ namespace kiva::huffman {
         }
 
         static HuffmanTable encodeDictionary(const CodeDict &dictionary) {
+            assert(dictionary.size() < UINT8_MAX + 1);
+
             TreeHeap heap;
             for (CodePoint ch = 0; ch < dictionary.size(); ++ch) {
                 if (dictionary[ch] == 0) {
