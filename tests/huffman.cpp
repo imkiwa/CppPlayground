@@ -668,7 +668,7 @@ namespace kiva::huffman {
             size_t compressedEnd = result.getPosition();
             HfzEntryHeader header{};
             header.compressedSize = static_cast<int>(compressedEnd - compressedStart);
-            memcpy(header.huffmanTable, table.data(), table.size());
+            memcpy(header.huffmanTable, table.data(), sizeof(int) * table.size());
 
             // write the real header
             result.writeAt(headerPosition,
@@ -732,24 +732,18 @@ namespace kiva::huffman {
             return _files;
         }
 
-        bool compress() {
+        void compress() {
             ByteBuffer outputBuffer;
             ByteBuffer inputBuffer;
 
             // file magic
             outputBuffer.write(HFZ_MAGIC, HFZ_MAGIC_SIZE);
 
-            int errors = 0;
-
             printf("Creating %s\n", _outputFile.c_str());
-
             for (auto &&f : _files) {
                 FILE *fileIn = fopen(f.c_str(), "rb");
                 if (fileIn == nullptr) {
-                    fprintf(stderr, "compress: failed to open file for read %s: %s\n",
-                        f.c_str(), strerror(errno));
-                    ++errors;
-                    continue;
+                    throw std::runtime_error("failed to open " + f + ": " + strerror(errno));
                 }
 
                 fseek(fileIn, 0, SEEK_END);
@@ -761,11 +755,9 @@ namespace kiva::huffman {
 
                 inputBuffer.rewind();
                 if (!HfzCommand::compressContent(bytes, fileSize, inputBuffer)) {
-                    fprintf(stderr, "compress: failed to compress file content: %s\n",
-                        f.c_str());
-                    ++errors;
                     delete[] bytes;
-                    continue;
+                    fclose(fileIn);
+                    throw std::runtime_error("failed to compress file " + f);
                 }
 
                 delete[] bytes;
@@ -789,23 +781,24 @@ namespace kiva::huffman {
                 }
             }
 
+            // all entries compressed
+            // create the output hfz file
             FILE *fp = fopen(_outputFile.c_str(), "wb");
 
             if (fp == nullptr) {
-                fprintf(stderr, "compress: failed to open file for write %s: %s\n",
-                    _outputFile.c_str(), strerror(errno));
-                return false;
+                throw std::runtime_error("failed to create hfz file "
+                                         + _outputFile + ": "
+                                         + strerror(errno));
             }
 
             auto &&sizedBuffer = outputBuffer.getBuffer();
             fwrite(sizedBuffer._bytes, sizedBuffer._used, 1, fp);
 
             fclose(fp);
-            return !errors;
         }
 
-        bool operator()() {
-            return compress();
+        void operator()() {
+            compress();
         }
     };
 
@@ -828,8 +821,8 @@ namespace kiva::huffman {
 
             _inflateBuffer.rewind();
             HuffmanTable table{0};
-            memcpy(table.data(), _entryHeader.huffmanTable, table.size());
-            bool r = HfzCommand::decompressContent(nullptr, 0,
+            memcpy(table.data(), _entryHeader.huffmanTable, sizeof(int) * table.size());
+            bool r = HfzCommand::decompressContent(bytes, getCompressedSize(),
                 table, _inflateBuffer);
             delete[] bytes;
             return r;
@@ -1018,9 +1011,25 @@ namespace kiva::huffman {
             HfzArchive archive(_hfzFile);
             archive.open();
 
-            printf("Extracting %s\n", _hfzFile.c_str());
+            printf("Extracting %s into %s\n", _hfzFile.c_str(), _outputDir.c_str());
+            if (!HfzUtils::mkdirR(_outputDir, 0755)) {
+                throw std::runtime_error("failed to mkdir " + _outputDir
+                                         + ": " + strerror(errno));
+            }
+
             for (auto &&item : archive) {
-                printf("  inflating: %s\n", item->getEntryFilePath().c_str());
+                String outputFile = _outputDir + "/" + item->getEntryFilePath();
+                printf("  inflating: %s\n", outputFile.c_str());
+
+                FILE *fp = fopen(outputFile.c_str(), "wb");
+                if (fp == nullptr) {
+                    throw std::runtime_error("failed to create file " + outputFile
+                                             + ": " + strerror(errno));
+                }
+
+                auto buffer = item->inflate();
+                fwrite(buffer._bytes, buffer._used, 1, fp);
+                fclose(fp);
             }
         }
 
@@ -1058,8 +1067,10 @@ int main(int argc, const char **argv) {
             compressor.addFile(*argv++);
         }
 
-        if (!compressor()) {
-            fprintf(stderr, "compress: error encountered\n");
+        try {
+            compressor();
+        } catch (std::runtime_error &e) {
+            fprintf(stderr, "compress: error encountered: %s\n", e.what());
             return 1;
         }
 
