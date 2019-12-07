@@ -17,21 +17,21 @@ void sayHi(Optional<std::string> name) {
 }
 
 int sum(Optional<std::vector<int>> nums) {
-    int s = 0;
-    if (nums.hasValue()) {
-        for (auto e : nums.get()) {
+    return nums.applyOr<int>(0, [](auto &&v) -> int {
+        int s = 0;
+        for (auto &&e : v) {
             s += e;
         }
-    }
-    return s;
+        return s;
+    });
 }
 
 int main(int argc, const char **argv) {
-    sayHi(Optional<std::string>::nothing());
-    sayHi(Optional<std::string>::just("imkiva"));
+    sayHi(Optional<std::string>::none());
+    sayHi(Optional<std::string>::from("imkiva"));
 
     std::vector<int> v{1, 2, 3, 4};
-    printf("sum1 = %d\n", sum(Optional<decltype(v)>::just(v)));
-    printf("sum2 = %d\n", sum(Optional<decltype(v)>::nothing()));
+    printf("sum1 = %d\n", sum(Optional<decltype(v)>::from(v)));
+    printf("sum2 = %d\n", sum(Optional<decltype(v)>::none()));
     printf("sum3 = %d\n", sum(Optional<decltype(v)>::emplace(1, 2, 3, 4, 5)));
 }

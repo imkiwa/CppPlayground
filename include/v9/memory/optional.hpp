@@ -20,11 +20,11 @@ namespace v9::memory {
         std::array<unsigned char, 1 + sizeof(T)> _memory{0};
 
     public:
-        static Optional<T> just(const T &t) {
+        static Optional<T> from(const T &t) {
             return Optional<T>(t);
         }
 
-        static Optional<T> just(T &&t) {
+        static Optional<T> from(T &&t) {
             return Optional<T>(std::forward<T>(t));
         }
 
@@ -33,7 +33,7 @@ namespace v9::memory {
             return Optional<T>(T{std::forward<Args>(args)...});
         }
 
-        static Optional<T> nothing() {
+        static Optional<T> none() {
             return Optional<T>();
         }
 
@@ -121,10 +121,18 @@ namespace v9::memory {
             return *ptr();
         }
 
-        void apply(const std::function<void(T &t)> &consumer) {
+        void apply(const std::function<void(T &)> &consumer) {
             if (ptr() != nullptr) {
                 consumer(get());
             }
+        }
+
+        template <typename R>
+        R applyOr(const R &r, const std::function<R(T &)> &consumer) {
+            if (ptr() != nullptr) {
+                return consumer(get());
+            }
+            return r;
         }
 
         bool hasValue() const {
