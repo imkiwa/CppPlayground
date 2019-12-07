@@ -58,8 +58,7 @@ namespace v9::memory {
         }
 
         Optional(Optional<T> &&other) noexcept {
-            memcpy(_memory, other._memory, sizeof(_memory));
-            other._memory[0] = static_cast<unsigned char>(false);
+            swap(other);
         }
 
         ~Optional() {
