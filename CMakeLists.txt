@@ -33,6 +33,7 @@ add_executable(fp-curry tests/fp-curry.cpp)
 add_executable(fp-basic tests/fp-basic.cpp)
 add_executable(fp-fix tests/fp-fix.cpp)
 add_executable(huffman tests/huffman.cpp)
+add_executable(optional tests/optional.cpp)
 
 add_executable(work tests/work.cpp)
 add_executable(work2 tests/work2.cpp)
