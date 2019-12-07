@@ -17,7 +17,7 @@ namespace v9::memory {
          * memory[0] == true: this optional has a value
          * memory[0] == false: this optional has no value
          */
-         std::array<unsigned char, 1 + sizeof(T)> _memory{0};
+        std::array<unsigned char, 1 + sizeof(T)> _memory{0};
 
     public:
         static Optional<T> just(const T &t) {
