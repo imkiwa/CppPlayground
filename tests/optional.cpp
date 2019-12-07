@@ -16,7 +16,7 @@ void sayHi(Optional<std::string> name) {
     }
 }
 
-int sum(Optional<std::vector<int>> nums) {
+int sum(const Optional<std::vector<int>> &nums) {
     return nums.applyOr<int>(0, [](auto &&v) -> int {
         int s = 0;
         for (auto &&e : v) {

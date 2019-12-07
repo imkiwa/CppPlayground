@@ -96,7 +96,7 @@ namespace v9::memory {
         }
 
         const T *ptr() const {
-            return hasValue() ? reinterpret_cast<T *>(_memory.data() + 1) : nullptr;
+            return hasValue() ? reinterpret_cast<const T *>(_memory.data() + 1) : nullptr;
         }
 
         T &get() {
@@ -127,8 +127,22 @@ namespace v9::memory {
             }
         }
 
+        void apply(const std::function<void(const T &)> &consumer) const {
+            if (ptr() != nullptr) {
+                consumer(get());
+            }
+        }
+
         template <typename R>
         R applyOr(const R &r, const std::function<R(T &)> &consumer) {
+            if (ptr() != nullptr) {
+                return consumer(get());
+            }
+            return r;
+        }
+
+        template <typename R>
+        R applyOr(const R &r, const std::function<R(const T &)> &consumer) const {
             if (ptr() != nullptr) {
                 return consumer(get());
             }
