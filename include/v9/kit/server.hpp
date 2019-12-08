@@ -6,7 +6,6 @@
 
 #include <string>
 #include <unordered_map>
-#include <v9/bits/traits.hpp>
 #include <v9/kit/event.hpp>
 #include <v9/kit/optional.hpp>
 
@@ -14,15 +13,19 @@ namespace v9::kit {
     /**
      * Epoll based high performance IO server.
      *
+     * @tparam K Key of the connection pool.
      * @tparam E should derive from EventEmitter and have a default constructor
      */
-    template <typename E,
+    template <typename K, typename E,
+        // E should have a default constructor
         typename = typename std::enable_if<std::is_default_constructible_v<E>, E>::type,
-        typename = typename std::enable_if<InstanceOf_v<E, EventEmitter>, E>::type
+
+        // E should derive from EventEmitter
+        typename = typename std::enable_if<std::is_base_of_v<EventEmitter, E>, E>::type
     >
     class IOServer {
     private:
-        std::unordered_map<std::string, Optional<E>> _connections;
+        std::unordered_map<K, Optional<E>> _connections;
 
     public:
         IOServer() = default;
@@ -45,5 +48,6 @@ namespace v9::kit {
         }
 
     public:
+
     };
 }

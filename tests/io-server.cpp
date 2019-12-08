@@ -10,16 +10,7 @@ using namespace v9::kit;
 class IO : public EventEmitter {
 };
 
-class IO_ : public EventEmitter {
-public:
-    IO_() = delete;
-};
-
-class IO__ {
-};
 
 int main(int argc, const char **argv) {
-    IOServer<IO> server;
-    IOServer<IO_> server_;
-    IOServer<IO__> server__;
+    IOServer<std::string, IO> server;
 }

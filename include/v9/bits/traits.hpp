@@ -63,6 +63,18 @@ namespace v9 {
     template<typename From, typename To>
     static inline constexpr bool InstanceOf_v = InstanceOf<From, To>::value;
 
+    template <bool C>
+    struct require_ {
+    };
+
+    template <>
+    struct require_<true> {
+        using type = void;
+    };
+
+    template <bool C>
+    using require = typename require_<C>::type;
+
     template<typename T, typename = void_t<>>
     struct OverloadsGT : public std::false_type {
     };
