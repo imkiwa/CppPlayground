@@ -6,7 +6,7 @@
 #include <vector>
 #include <cstdio>
 
-using namespace v9::memory;
+using namespace v9::kit;
 
 void sayHi(Optional<std::string> name) {
     if (name.hasValue()) {

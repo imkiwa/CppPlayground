@@ -8,7 +8,7 @@
 #include <utility>
 #include <functional>
 
-namespace v9::memory {
+namespace v9::kit {
     template <typename T>
     class Optional {
     private:
