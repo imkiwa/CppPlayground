@@ -17,7 +17,11 @@ set(SOURCE_FILES src/v9.cpp
         include/v9/fp/curry.hpp
         include/v9/fp/fix.hpp
         include/v9/fp/fp.hpp
-        include/v9/fp/basic.hpp)
+        include/v9/fp/basic.hpp
+        include/v9/kit/event.hpp
+        include/v9/kit/optional.hpp
+        include/v9/kit/server.hpp
+        )
 add_library(v9 ${SOURCE_FILES})
 
 add_executable(qsort tests/qsort.cpp)
@@ -35,6 +39,7 @@ add_executable(fp-fix tests/fp-fix.cpp)
 add_executable(huffman tests/huffman.cpp)
 add_executable(optional tests/optional.cpp)
 add_executable(event-emitter tests/event-emitter.cpp)
+add_executable(io-server tests/io-server.cpp)
 
 add_executable(work tests/work.cpp)
 add_executable(work2 tests/work2.cpp)

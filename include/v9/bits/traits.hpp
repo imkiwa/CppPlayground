@@ -60,6 +60,9 @@ namespace v9 {
         > : public true_type {
     };
 
+    template<typename From, typename To>
+    static inline constexpr bool InstanceOf_v = InstanceOf<From, To>::value;
+
     template<typename T, typename = void_t<>>
     struct OverloadsGT : public std::false_type {
     };
