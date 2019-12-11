@@ -91,6 +91,10 @@ namespace v9::kit {
             std::swap(this->_memory, other._memory);
         }
 
+        void swap(Optional<T> &other) {
+            std::swap(this->_memory, other._memory);
+        }
+
         T *ptr() {
             return hasValue() ? reinterpret_cast<T *>(_memory.data() + 1) : nullptr;
         }

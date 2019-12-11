@@ -40,6 +40,7 @@ add_executable(huffman tests/huffman.cpp)
 add_executable(optional tests/optional.cpp)
 add_executable(event-emitter tests/event-emitter.cpp)
 add_executable(io-server tests/io-server.cpp)
+add_executable(hack-vptr tests/hack-vptr.cpp)
 
 add_executable(work tests/work.cpp)
 add_executable(work2 tests/work2.cpp)

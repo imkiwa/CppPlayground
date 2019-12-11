@@ -48,6 +48,18 @@ namespace v9::kit {
         }
 
     public:
+        Optional<E> &openNew(const K &k) {
+            _connections[k] = Optional<E>::from(E());
+            return _connections[k];
+        }
 
+        Optional<E> &open(const K &k) {
+            auto it = _connections.find(k);
+            if (it != _connections.end()) {
+                return it->second;
+            }
+
+            return openNew(k);
+        }
     };
 }
