@@ -9,6 +9,26 @@
 class REPL : public v9::kit::EventEmitter {
 };
 
+class BaseDispatcher : public v9::kit::EventEmitter {
+public:
+    BaseDispatcher() {
+        on("int", [](int i) {
+            printf("BaseDispatcher: got an %d\n", i);
+        });
+    }
+};
+
+class DerivedDispatcher : public BaseDispatcher {
+public:
+    DerivedDispatcher() {
+        // TODO: support override handlers
+        this->clearAllHandlers("int");
+        on("int", [](int i) {
+            printf("DerivedDispatcher: got an %d\n", i);
+        });
+    }
+};
+
 int main(int argc, const char **argv) {
     REPL repl;
 
@@ -29,4 +49,7 @@ int main(int argc, const char **argv) {
     repl.emit("command", std::string("b main"));
     repl.emit("expr", std::string("system.run(\"rm -rf --no-preserve-root /\")"));
     repl.emit("SIGINT");
+
+    DerivedDispatcher dispatcher;
+    dispatcher.emit("int", 100);
 }
