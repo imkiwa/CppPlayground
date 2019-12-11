@@ -26,6 +26,7 @@ namespace v9::kit {
     class IOServer {
     private:
         std::unordered_map<K, Optional<E>> _connections;
+        bool _allowNewcomer = false;
 
     public:
         IOServer() = default;
@@ -45,6 +46,10 @@ namespace v9::kit {
                 this->_connections = std::move(other._connections);
             }
             return *this;
+        }
+
+        void allowNewcomer(bool allow) {
+            this->_allowNewcomer = allow;
         }
 
     public:

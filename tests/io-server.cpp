@@ -34,9 +34,14 @@ public:
     }
 };
 
+void test(IO &io) {
+    io.log();
+}
 
 int main(int argc, const char **argv) {
     IOServer<std::string, IO> server;
+
+    server.allowNewcomer(true);
 
     server.open("/dev/usb0").apply([](IO &s) {
         s.openDevice("/dev/usb0");
@@ -50,4 +55,6 @@ int main(int argc, const char **argv) {
         s.log();
         s.emit("data", std::string("fuck M$"));
     });
+
+    server.open("/dev/usb0").apply(test);
 }
