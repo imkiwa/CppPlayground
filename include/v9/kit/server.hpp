@@ -32,7 +32,7 @@ namespace v9::kit {
 
         ~IOServer() = default;
 
-        IOServer(const IOServer &&) = delete;
+        IOServer(const IOServer &) = delete;
 
         IOServer(IOServer &&other) noexcept
             : _connections(std::move(other._connections)) {
