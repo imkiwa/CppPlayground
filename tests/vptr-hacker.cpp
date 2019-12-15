@@ -4058,38 +4058,41 @@ public:
     }
 };
 
-class Object {
+class 女装会长 {
 public:
-    virtual ~Object() = default;
+    virtual void 女装() = 0;
+    virtual void 开会() = 0;
 };
 
-class Flyable : public Object {
+class 会长 : public 女装会长 {
 public:
-    virtual void fly() {
-        printf("Flyable: I can fly\n");
-    }
+    void 女装() override { std::terminate(); }
+    void 开会() override { printf("我带你们打\n"); }
 };
 
-class Bird : public Flyable {
-public:
-    ~Bird() override = default;
+void 真香(会长 *_this) {
+    printf("女装真香\n");
+}
 
-    void fly() override {
-        printf("Bird: I can fly\n");
-    }
+void 真香x2(会长 *_this) {
+    printf("女装开会真刺激\n");
+}
 
-    virtual void eat() {
-        printf("Bird: I can eat\n");
-    }
-};
+void 淦(女装会长 *会长) {
+    会长->女装();
+    会长->开会();
+}
 
 int main() {
-    printf("Vtable size of Flyable: %zd\n", Vtable::getSize<Flyable>());
-    printf("offset of Flyable::~Flyable: %zd\n", Vtable::getDestructorOffset<Flyable>());
-    printf("offset of Flyable::fly: %zd\n", Vtable::getOffset(&Flyable::fly));
-    printf("\n");
-    printf("Vtable size of Bird: %zd\n", Vtable::getSize<Bird>());
-    printf("offset of Bird::~Bird: %zd\n", Vtable::getDestructorOffset<Bird>());
-    printf("offset of Bird::fly: %zd\n", Vtable::getOffset(&Bird::fly));
-    printf("offset of Bird::eat: %zd\n", Vtable::getOffset(&Bird::eat));
+    女装会长 *p = new 会长;
+
+    void *vptr[Vtable::getSize<会长>()];
+    memcpy(vptr, reinterpret_cast<void **>(p), sizeof(vptr));
+
+    vptr[Vtable::getOffset(&会长::女装)] = reinterpret_cast<void *>(真香);
+    vptr[Vtable::getOffset(&会长::开会)] = reinterpret_cast<void *>(真香x2);
+
+    *reinterpret_cast<void ***>(p) = vptr;
+
+    淦(p);
 }
