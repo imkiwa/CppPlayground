@@ -3,7 +3,7 @@
 //
 #include <iostream>
 
-struct VtableOffsetSelector {
+struct VtableOffsetHacker {
     size_t offset{0};
 
     virtual size_t offset0(int) {
@@ -4020,12 +4020,13 @@ struct VtableOffsetSelector {
 };
 
 template <typename To, typename From>
-To unionCast(From source) {
+To memoryCast(From source) {
     union {
         From source;
         To target;
-    } u;
-    u.source = source;
+    } u{
+        .source = source,
+    };
     return u.target;
 }
 
@@ -4034,27 +4035,27 @@ class Vtable {
 public:
     template <typename C, typename R, typename ... Args>
     static size_t getOffset(R (C::*vMethod)(Args...)) {
-        auto sMethod = reinterpret_cast<size_t (VtableOffsetSelector::*)(int)>(vMethod);
-        VtableOffsetSelector offsetSelector;
-        return (offsetSelector.*sMethod)(0);
+        auto sMethod = reinterpret_cast<size_t (VtableOffsetHacker::*)(int)>(vMethod);
+        VtableOffsetHacker hacker;
+        return (hacker.*sMethod)(0);
     }
 
     template <typename C>
     static typename std::enable_if<std::has_virtual_destructor<C>::value, size_t>::type
     getDestructorOffset() {
-        VtableOffsetSelector offsetSelector;
-        unionCast<C *>(&offsetSelector)->~C();
-        return offsetSelector.offset;
+        VtableOffsetHacker hacker;
+        memoryCast<C *>(&hacker)->~C();
+        return hacker.offset;
     }
 
     template <typename C>
     static size_t getSize() {
-        struct Derived_From_C : public C {
+        struct FakeDerived : public C {
             virtual void lastVirtualMethod() {
             }
         };
 
-        return getOffset(&Derived_From_C::lastVirtualMethod);
+        return getOffset(&FakeDerived::lastVirtualMethod);
     }
 };
 
