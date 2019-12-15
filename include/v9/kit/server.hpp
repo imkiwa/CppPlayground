@@ -4,12 +4,39 @@
 
 #pragma once
 
+#include <cstdio>
 #include <string>
 #include <unordered_map>
+#include <v9/kit/object.hpp>
 #include <v9/kit/event.hpp>
 #include <v9/kit/optional.hpp>
 
+#include <sys/poll.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 namespace v9::kit {
+    /**
+     * Epoll wrapper.
+     *
+     * @tparam MAX_EVENT How many events can be processed per epoll_wait()
+     * @tparam MAX_POLL How many connections can epoll process per epoll_create()
+     */
+    template <size_t MAX_EVENT, size_t MAX_POLL>
+    class Epoll : public NoCopy, NoMove {
+    private:
+        int _efd = -1;
+
+    public:
+        Epoll() = default;
+
+        ~Epoll() {
+            if (_efd >= 0) {
+                close(_efd);
+            }
+        }
+    };
+
     /**
      * Epoll based high performance IO server.
      *
@@ -23,7 +50,7 @@ namespace v9::kit {
         // E should derive from EventEmitter
         typename = typename std::enable_if<std::is_base_of_v<EventEmitter, E>, E>::type
     >
-    class IOServer {
+    class IOServer : public Epoll<32, 256> {
     private:
         std::unordered_map<K, Optional<E>> _connections;
         bool _allowNewcomer = false;
