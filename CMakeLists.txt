@@ -21,6 +21,7 @@ set(SOURCE_FILES src/v9.cpp
         include/v9/kit/event.hpp
         include/v9/kit/optional.hpp
         include/v9/kit/server.hpp
+        include/v9/kit/string.hpp
         )
 add_library(v9 ${SOURCE_FILES})
 
