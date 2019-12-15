@@ -4033,18 +4033,17 @@ To memoryCast(From source) {
 
 class Vtable {
 public:
-    template <typename C, typename R, typename ... Args>
-    static size_t getOffset(R (C::*vMethod)(Args...)) {
-        auto sMethod = reinterpret_cast<size_t (VtableOffsetHacker::*)(int)>(vMethod);
+    template <typename ClassType, typename R, typename ... Args>
+    static size_t getOffset(R (ClassType::*virtualMethod)(Args...)) {
+        auto hackedMethod = reinterpret_cast<size_t (VtableOffsetHacker::*)(int)>(virtualMethod);
         VtableOffsetHacker hacker;
-        return (hacker.*sMethod)(0);
+        return (hacker.*hackedMethod)(0);
     }
 
-    template <typename C>
-    static typename std::enable_if<std::has_virtual_destructor<C>::value, size_t>::type
-    getDestructorOffset() {
+    template <typename ClassType>
+    static std::enable_if_t<std::has_virtual_destructor<ClassType>::value, size_t> getDestructorOffset() {
         VtableOffsetHacker hacker;
-        memoryCast<C *>(&hacker)->~C();
+        memoryCast<ClassType *>(&hacker)->~ClassType();
         return hacker.offset;
     }
 
