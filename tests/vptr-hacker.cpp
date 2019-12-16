@@ -4058,41 +4058,29 @@ public:
     }
 };
 
-class 女装会长 {
+class Base {
 public:
-    virtual void 女装() = 0;
-    virtual void 开会() = 0;
+    virtual ~Base() = default;
+    virtual void pureVirtual1() = 0;
+    virtual void pureVirtual2() = 0;
+    virtual void pureVirtual3() = 0;
+    virtual void pureVirtual4() = 0;
 };
 
-class 会长 : public 女装会长 {
+class Derived : public Base {
 public:
-    void 女装() override { std::terminate(); }
-    void 开会() override { printf("我带你们打\n"); }
+    ~Derived() override = default;
+    void pureVirtual1() override {}
+    void pureVirtual2() override {}
+    void pureVirtual3() override {}
+    void pureVirtual4() override {}
 };
-
-void 真香(会长 *_this) {
-    printf("女装真香\n");
-}
-
-void 真香x2(会长 *_this) {
-    printf("女装开会真刺激\n");
-}
-
-void 淦(女装会长 *会长) {
-    会长->女装();
-    会长->开会();
-}
 
 int main() {
-    女装会长 *p = new 会长;
-
-    void *vptr[Vtable::getSize<会长>()];
-    memcpy(vptr, reinterpret_cast<void **>(p), sizeof(vptr));
-
-    vptr[Vtable::getOffset(&会长::女装)] = reinterpret_cast<void *>(真香);
-    vptr[Vtable::getOffset(&会长::开会)] = reinterpret_cast<void *>(真香x2);
-
-    *reinterpret_cast<void ***>(p) = vptr;
-
-    淦(p);
+    printf("Vtable size of Base: %zd\n", Vtable::getSize<Base>());
+    printf("offset of Base::~Base(): %zd\n", Vtable::getDestructorOffset<Base>());
+    printf("offset of Base::~pureVirtual1(): %zd\n", Vtable::getOffset(&Base::pureVirtual1));
+    printf("offset of Base::~pureVirtual2(): %zd\n", Vtable::getOffset(&Base::pureVirtual2));
+    printf("offset of Base::~pureVirtual3(): %zd\n", Vtable::getOffset(&Base::pureVirtual3));
+    printf("offset of Base::~pureVirtual4(): %zd\n", Vtable::getOffset(&Base::pureVirtual4));
 }
