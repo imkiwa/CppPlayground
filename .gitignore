@@ -42,4 +42,4 @@ tests/work*.cpp
 tests/review.cpp
 tests/model*.cpp
 works/
-data.csv
+works-data/
