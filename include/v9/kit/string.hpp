@@ -606,7 +606,7 @@ namespace v9::kit {
 
         bool contains(StringRef other) const { return find(other) != npos; }
 
-        bool contains(char c) const { return find_first_of(c) != npos; }
+        bool contains(char c) const { return findFirstOf(c) != npos; }
 
         bool containsIgnoreCase(StringRef other) const {
             return findIgnoreCase(other) != npos;
