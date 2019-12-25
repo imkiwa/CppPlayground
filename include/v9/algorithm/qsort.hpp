@@ -9,32 +9,31 @@
 namespace v9 {
     namespace sorts {
         template<typename T>
-        void qsort(T *elements, size_t length) {
-            if (length < 2) return;
+        void qsort(T *a, size_t low, size_t high) {
+            while (low < high) {
+                size_t md = low + (high - low) / 2;
+                size_t l = low - 1;
+                size_t h = high + 1;
+                T p = a[md];
 
-            size_t left = 0;
-            size_t right = length;
-            const T &base = elements[0];
-
-            for (;;) {
-                while (--right > left && elements[right] > base);
-                if (right > left) {
-                    elements[left] = elements[right];
-                } else {
-                    break;
+                while (true) {
+                    while (a[++l] < p);
+                    while (a[--h] > p);
+                    if (l >= h) {
+                        break;
+                    }
+                    std::swap(a[l], a[h]);
                 }
 
-                while (++left < right && elements[left] <= base);
-                if (left < right) {
-                    elements[right] = elements[left];
+                l = h++;
+                if ((l - low) <= (high - h)) {
+                    qsort(a, low, l);
+                    low = h;
                 } else {
-                    break;
+                    qsort(a, h, high);
+                    high = l;
                 }
             }
-
-            elements[left] = base;
-            qsort(elements, left);
-            qsort(elements + left + 1, length - left - 1);
         }
     }
 }
