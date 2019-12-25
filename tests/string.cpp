@@ -8,14 +8,15 @@
 using namespace v9::kit;
 
 bool verify(StringRef str) {
-    int x = str.indexedStream()
+    int index = 0;
+    int x = str.intStream()
         .take(17)
-        .map([](auto pair) {
-            int code = (1 << (18 - pair.first - 1)) % 11 * (pair.second - '0');
-            return std::make_pair(pair.first, code);
+        .map([&index](int c) {
+            int code = (1 << (18 - index++ - 1)) % 11 * (c - '0');
+            return code;
         })
-        .reduce<int>(0, [](int acc, auto pair) {
-            return acc + pair.second;
+        .reduce<int>(0, [](int acc, int c) {
+            return acc + c;
         });
 
     x = (12 - (x % 11)) % 11;
