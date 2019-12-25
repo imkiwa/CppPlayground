@@ -50,6 +50,8 @@ int main(int argc, const char **argv) {
     repl.emit("expr", std::string("system.run(\"rm -rf --no-preserve-root /\")"));
     repl.emit("SIGINT");
 
+    repl.emit("SIGINT", 1, 2, 3);
+
     DerivedDispatcher dispatcher;
     dispatcher.emit("int", 100);
 }
