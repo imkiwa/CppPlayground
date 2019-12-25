@@ -310,10 +310,8 @@ namespace v9::kit {
         * @param list The list
         * @return Stream
         */
-        static Stream<T> of(const std::deque<T> &list) {
-            std::deque<T> d;
-            std::copy(list.begin(), list.end(), std::back_inserter(d));
-            return Stream<T>(std::move(d));
+        static Stream<T> of(std::deque<T> list) {
+            return Stream<T>(std::move(list));
         }
     };
 }

@@ -937,5 +937,20 @@ namespace v9::kit {
             std::copy(begin(), end(), std::back_inserter(d));
             return Stream<char>::of(std::move(d));
         }
+
+        Stream<int> intStream() {
+            std::deque<int> d;
+            std::copy(begin(), end(), std::back_inserter(d));
+            return Stream<int>::of(std::move(d));
+        }
+
+        Stream<std::pair<int, int>> indexedStream() {
+            std::deque<std::pair<int, int>> d;
+            auto ptr = _data;
+            for (int i = 0; i < size(); ++i) {
+                d.emplace_back(i, *ptr++);
+            }
+            return Stream<std::pair<int, int>>::of(std::move(d));
+        }
     };
 }

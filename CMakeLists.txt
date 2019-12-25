@@ -44,6 +44,7 @@ add_executable(io-server tests/io-server.cpp)
 add_executable(hack-vptr tests/hack-vptr.cpp)
 add_executable(vptr-hacker tests/vptr-hacker.cpp)
 add_executable(timeout tests/timeout.cpp)
+add_executable(string tests/string.cpp)
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/works)
     add_subdirectory(works)
