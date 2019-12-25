@@ -41,7 +41,7 @@ int main(int argc, const char **argv) {
         printf("evaluating: %s\n", expr.c_str());
     });
 
-    repl.on("command", [](const std::string &opt) {
+    repl.on("command", [](const std::string& opt) {
         printf("applying command: %s\n", opt.c_str());
     });
 
@@ -49,8 +49,6 @@ int main(int argc, const char **argv) {
     repl.emit("command", std::string("b main"));
     repl.emit("expr", std::string("system.run(\"rm -rf --no-preserve-root /\")"));
     repl.emit("SIGINT");
-
-    repl.emit("SIGINT", 1, 2, 3);
 
     DerivedDispatcher dispatcher;
     dispatcher.emit("int", 100);
