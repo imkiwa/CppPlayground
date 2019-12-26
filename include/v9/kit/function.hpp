@@ -5,15 +5,20 @@
 
 namespace v9::kit {
     /**
-     * An alias for function implementation.
-     * In case that we need to use our own function
-     * in the future.
+     * An alias for std::function. In case that we need to
+     * use our own function implementation in the future.
      */
     template <typename T>
     using FunctionAlias = std::function<T>;
 
+    /**
+     * Remove all qualifiers from typenames.
+     * e.g. `const std::string &` -> `std::string`
+     *
+     * @tparam Args typenames
+     */
     template <typename ... Args>
-    struct ArgTypePurifier {
+    struct TypePurifier {
         template <typename T>
         using Purify = std::remove_const_t<std::remove_reference_t<std::remove_const_t<T>>>;
 
@@ -34,27 +39,67 @@ namespace v9::kit {
         using Type = typename QualifierRemover<Args...>::Type;
     };
 
-    template <typename Handler>
-    struct FunctionParser : public FunctionParser<decltype(&Handler::operator())> {
+    /**
+     * Parse function typename to return type and argument type(s).
+     * @tparam F function typename
+     */
+    template <typename F>
+    struct FunctionParser : public FunctionParser<decltype(&F::operator())> {
     };
 
-    template <typename ClassType, typename R, typename... Args>
-    struct FunctionParser<R(ClassType::*)(Args...) const> {
+    /**
+     * Base condition of recursion, extracting all information from functions.
+     *
+     * @tparam Class function owner
+     * @tparam R function return type
+     * @tparam Args function argument type(s)
+     */
+    template <typename Class, typename R, typename... Args>
+    struct FunctionParser<R(Class::*)(Args...) const> {
         using FunctionType = FunctionAlias<R(Args...)>;
+        using ReturnType = R;
+        using ClassType = Class;
+
+        /**
+         * Raw argument types, unmodified.
+         */
         using ArgTypes = TypeList::List<Args...>;
-        using PureArgsTypes = typename ArgTypePurifier<Args...>::Type;
+
+        /**
+         * Purified argument types, with all qualifiers removed.
+         * @see TypePurifier
+         */
+        using PureArgsTypes = typename TypePurifier<Args...>::Type;
     };
 
+    /**
+     * Parse all function pointers, including global functions,
+     * static class functions.
+     * Note that, instance methods are not supported.
+     *
+     * @tparam P function pointer type
+     */
     template <typename P>
     struct FunctionParser<P *> : public FunctionParser<FunctionAlias<P>> {
     };
 
-    template <typename Handler>
-    using FunctionType = typename FunctionParser<Handler>::FunctionType;
+    /**
+     * Short for {@code typename FunctionParser<F>::FunctionType}
+     */
+    template <typename F>
+    using FunctionType = typename FunctionParser<F>::FunctionType;
 
-    template <typename Handler>
-    static FunctionType<Handler> makeFunction(Handler &cb) {
-        return static_cast<FunctionType<Handler>>(cb);
+    /**
+     * Convert callable things to function type (aka FunctionAlias).
+     *
+     * @see FunctionAlias
+     * @tparam F Function typename
+     * @param f function itself
+     * @return FunctionAlias object
+     */
+    template <typename F>
+    static FunctionType<F> makeFunction(F &f) {
+        return static_cast<FunctionType<F>>(f);
     }
 }
 
