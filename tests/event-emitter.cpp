@@ -23,11 +23,20 @@ public:
     DerivedDispatcher() {
         // TODO: support override handlers
         this->clearAllHandlers("int");
-        on("int", [](int i) {
+        on("int", [this](int i) {
             printf("DerivedDispatcher: got an %d\n", i);
+            this->love();
         });
     }
+
+    void love() {
+        printf("Tell my father: I love him\n");
+    }
 };
+
+void love() {
+    printf("I love u\n");
+}
 
 int main(int argc, const char **argv) {
     REPL repl;
@@ -49,11 +58,14 @@ int main(int argc, const char **argv) {
         printf("sum: %d\n", a + b + c);
     });
 
+    repl.on("love", love);
+
     // simulate real-world situation
     repl.emit("command", std::string("b main"));
     repl.emit("expr", std::string("system.run(\"rm -rf --no-preserve-root /\")"));
     repl.emit("SIGINT");
     repl.emit("sum", 2, 2, 7);
+    repl.emit("love");
 
     DerivedDispatcher dispatcher;
     dispatcher.emit("int", 100);
