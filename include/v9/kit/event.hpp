@@ -60,11 +60,11 @@ namespace v9::kit {
             );
         }
 
-        template <typename T>
-        FunctionAlias<T> *callablePtr() {
-            using ArgTypes = typename FunctionParser<FunctionAlias<T>>::PureArgsTypes;
+        template <typename F>
+        FunctionAlias<F> *callablePtr() {
+            using ArgTypes = typename FunctionParser<FunctionAlias<F>>::PureArgsTypes;
             if (_argsInfo == typeid(ArgTypes)) {
-                return reinterpret_cast<FunctionAlias<T> *>(_handler.get());
+                return reinterpret_cast<FunctionAlias<F> *>(_handler.get());
             }
             return nullptr;
         }
