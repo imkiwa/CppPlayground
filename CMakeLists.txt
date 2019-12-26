@@ -46,6 +46,7 @@ add_executable(vptr-hacker tests/vptr-hacker.cpp)
 add_executable(timeout tests/timeout.cpp)
 add_executable(string tests/string.cpp)
 add_executable(typelist tests/typelist.cpp)
+add_executable(ai-compiler tests/ai-compiler.cpp)
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/works)
     add_subdirectory(works)
