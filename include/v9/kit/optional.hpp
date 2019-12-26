@@ -87,6 +87,14 @@ namespace v9::kit {
             return *this;
         }
 
+        T* operator->() {
+            return ptr();
+        }
+
+        const T* operator->() const {
+            return ptr();
+        }
+
         void swap(Optional<T> &&other) {
             std::swap(this->_memory, other._memory);
         }
