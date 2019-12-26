@@ -45,6 +45,10 @@ namespace v9::kit {
         using PureArgsTypes = typename ArgTypePurifier<Args...>::Type;
     };
 
+    template <typename P>
+    struct FunctionParser<P *> : public FunctionParser<FunctionAlias<P>> {
+    };
+
     template <typename Handler>
     using FunctionType = typename FunctionParser<Handler>::FunctionType;
 
