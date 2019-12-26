@@ -102,7 +102,7 @@ namespace v9::kit {
         }
 
         template <typename ...Args>
-        void emit(const std::string &name, Args ...args) {
+        void emit(const std::string &name, Args &&...args) {
             auto it = _event.find(name);
             if (it == _event.end()) {
                 return;
@@ -111,7 +111,7 @@ namespace v9::kit {
             for (auto &&fn : it->second) {
                 auto handler = fn.callablePtr<void(Args...)>();
                 assert(handler && "Invalid call to event handler: mismatched argument list");
-                (*handler)(args...);
+                (*handler)(std::forward<Args>(args)...);
             }
         }
 
