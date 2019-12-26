@@ -69,7 +69,7 @@ namespace v9::kit {
          * Purified argument types, with all qualifiers removed.
          * @see TypePurifier
          */
-        using PureArgsTypes = typename TypePurifier<Args...>::Type;
+        using PureArgTypes = typename TypePurifier<Args...>::Type;
     };
 
     /**

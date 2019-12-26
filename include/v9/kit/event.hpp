@@ -27,7 +27,7 @@ namespace v9::kit {
             :_argsInfo(typeid(void)) {
             // handler-dependent types
             using WrapperType = decltype(makeFunction(handler));
-            using ArgTypes = typename FunctionParser<WrapperType>::PureArgsTypes;
+            using ArgTypes = typename FunctionParser<WrapperType>::PureArgTypes;
 
             auto *m = std::malloc(sizeof(WrapperType));
             if (m == nullptr) {
@@ -62,7 +62,7 @@ namespace v9::kit {
 
         template <typename F>
         FunctionAlias<F> *callablePtr() {
-            using ArgTypes = typename FunctionParser<FunctionAlias<F>>::PureArgsTypes;
+            using ArgTypes = typename FunctionParser<FunctionAlias<F>>::PureArgTypes;
             if (_argsInfo == typeid(ArgTypes)) {
                 return reinterpret_cast<FunctionAlias<F> *>(_handler.get());
             }
