@@ -26,11 +26,6 @@ namespace v9::kit {
             using Type = TypeList::cons<Purify<A>, RestList>;
         };
 
-        template <typename A>
-        struct QualifierRemover<A> {
-            using Type = TypeList::List<Purify<A>>;
-        };
-
         template <>
         struct QualifierRemover<> {
             using Type = TypeList::Empty;

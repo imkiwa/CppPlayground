@@ -45,10 +45,15 @@ int main(int argc, const char **argv) {
         printf("applying command: %s\n", opt.c_str());
     });
 
+    repl.on("sum", [](int a, int b, int c) {
+        printf("sum: %d\n", a + b + c);
+    });
+
     // simulate real-world situation
     repl.emit("command", std::string("b main"));
     repl.emit("expr", std::string("system.run(\"rm -rf --no-preserve-root /\")"));
     repl.emit("SIGINT");
+    repl.emit("sum", 2, 2, 7);
 
     DerivedDispatcher dispatcher;
     dispatcher.emit("int", 100);
