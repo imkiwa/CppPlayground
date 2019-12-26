@@ -34,6 +34,12 @@ public:
     }
 };
 
+struct Handlers {
+    static void onLove() {
+        printf("Handlers: on love\n");
+    }
+};
+
 void love() {
     printf("I love u\n");
 }
@@ -59,6 +65,7 @@ int main(int argc, const char **argv) {
     });
 
     repl.on("love", love);
+    repl.on("love", &Handlers::onLove);
 
     // simulate real-world situation
     repl.emit("command", std::string("b main"));
