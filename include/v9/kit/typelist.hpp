@@ -71,16 +71,16 @@ namespace v9::kit {
         using size = typename Size<Seq>::type;
 
         template <typename Seq>
-        static constexpr size_t size_v = size<Seq>::value;
-
-        template <typename Seq>
         using empty = std::is_same<size<Seq>, std::integral_constant<size_t, 0>>;
-
-        template <typename Seq>
-        static constexpr bool empty_v = empty<Seq>::value;
 
         template <typename SeqL, typename SeqR>
         using equals = std::is_same<SeqL, SeqR>;
+
+        template <typename Seq>
+        static constexpr size_t size_v = size<Seq>::value;
+
+        template <typename Seq>
+        static constexpr bool empty_v = empty<Seq>::value;
 
         template <typename SeqL, typename SeqR>
         static constexpr bool equals_v = equals<SeqL, SeqR>::value;
