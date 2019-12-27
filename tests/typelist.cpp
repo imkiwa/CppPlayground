@@ -27,4 +27,15 @@ int main() {
 
     static_assert(TypeList::equals<e3t, e2>::value, "You wrote a bug");
     static_assert(TypeList::equals<e3h, t1>::value, "You wrote a bug");
+
+    using c1 = TypeList::List<int, char>;
+    using c2 = TypeList::List<double, float>;
+    using c3 = TypeList::List<int, char, double, float>;
+
+    static_assert(TypeList::equals<c3, TypeList::concat<c1, c2>>::value,
+        "You wrote a bug");
+    static_assert(TypeList::equals<c1, TypeList::concat<c1, TypeList::Empty>>::value,
+        "You wrote a bug");
+    static_assert(TypeList::equals<c2, TypeList::concat<TypeList::Empty, c2>>::value,
+        "You wrote a bug");
 }

@@ -18,6 +18,9 @@ namespace v9::kit {
         template <typename Seq>
         struct TypeListTail;
 
+        template <typename SeqL, typename SeqR>
+        struct TypeListConcat;
+
         template <typename Seq>
         struct TypeListSize;
 
@@ -34,6 +37,11 @@ namespace v9::kit {
         template <template <typename...> class Seq, typename T, typename... Ts>
         struct TypeListTail<Seq<T, Ts...>> {
             using type = Seq<Ts...>;
+        };
+
+        template <template <typename...> class Seq, typename... Ts, typename ... Us>
+        struct TypeListConcat<Seq<Ts...>, Seq<Us ...>> {
+            using type = Seq<Ts..., Us...>;
         };
 
         template <template <typename...> typename Seq, typename... Ts>
@@ -55,6 +63,9 @@ namespace v9::kit {
 
         template <typename Seq>
         using tail = typename TypeListTail<Seq>::type;
+
+        template <typename SeqL, typename SeqR>
+        using concat = typename TypeListConcat<SeqL, SeqR>::type;
 
         template <typename Seq>
         using size = typename TypeListSize<Seq>::type;
