@@ -1,7 +1,6 @@
 //
 // Created by kiva on 2019/12/27.
 //
-#include <cstdio>
 #include <v9/kit/staticlist.hpp>
 
 int main() {
