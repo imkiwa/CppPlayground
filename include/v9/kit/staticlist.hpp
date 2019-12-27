@@ -182,19 +182,19 @@ namespace v9::kit {
             typename F,
             T t, T...ts>
         struct Filter<Seq<T, t, ts...>, F> {
-            using RestFiltered = filter<Seq<T, ts...>, F>;
+            using rest = filter<Seq<T, ts...>, F>;
 
             template <bool>
             struct FilterImpl;
 
             template <>
             struct FilterImpl<true> {
-                using type = cons<Constant<T, t>, RestFiltered>;
+                using type = cons<Constant<T, t>, rest>;
             };
 
             template <>
             struct FilterImpl<false> {
-                using type = RestFiltered;
+                using type = rest;
             };
 
             using type = typename FilterImpl<F::template value<t>>::type;
