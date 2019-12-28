@@ -34,7 +34,7 @@ namespace details {
     };
 
     template <typename F>
-    struct FunctionParser : FunctorParser<F> {
+    struct FunctionParser : public FunctorParser<F> {
     };
 
     template <typename P>
@@ -50,16 +50,17 @@ namespace details {
     };
 
     template <typename Class, typename R, typename... Args>
-    struct FunctionParser<R(Class::*)(Args...)> : public FunctionParser<R(Class::*)(Args...) const> {
+    struct FunctionParser<R(Class::*)(Args...)> : public FunctionParser<R(Class &, Args...)> {
+        using ClassType = Class;
+    };
+
+    template <typename Class, typename R, typename... Args>
+    struct FunctionParser<R(Class::*)(Args...) const> : public FunctionParser<R(const Class &, Args...) const> {
+        using ClassType = Class;
     };
 
     template <typename R, typename... Args>
     struct FunctionParser<R(Args...)> : public FunctionParser<R(Args...) const> {
-    };
-
-    template <typename Class, typename R, typename... Args>
-    struct FunctionParser<R(Class::*)(Args...) const> : public FunctionParser<R(Class *, Args...) const> {
-        using ClassType = Class;
     };
 
     template <typename R, typename... Args>
@@ -82,24 +83,33 @@ struct Fun {
 
     ~Fun() = default;
 
-    void hi(int, short, char) { printf("Support member methods\n"); }
+    void hi(int a, short b, char c) {
+        printf("%p: Support member methods, a = %d, b = %d, c = %d\n",
+            this, a, b, c);
+    }
 
-    void hi_const(char, short, int) const { printf("Support const member methods\n"); }
+    void hi_const(char a, short b, int c) const {
+        printf("%p: Support const member methods, a = %d, b = %d, c = %d\n",
+            this, a, b, c);
+    }
 
     static void say() { printf("Support static class methods\n"); }
 
-    void operator()() { printf("Support operator()\n"); }
+    void operator()() { printf("%p: Support operator()\n", this); }
 };
 
 void fptr(Fun, Fun) { printf("Support function pointers\n"); }
 
 int main() {
     Fun fun;
+
+    printf("addr of fun: %p\n", &fun);
+
     auto fm = makeFunction(&Fun::hi);
-    fm(&fun, 0, 0, '0');
+    fm(fun, 0, 0, '0');
 
     auto fc = makeFunction(&Fun::hi_const);
-    fc(&fun, '0', 0, 0);
+    fc(fun, '0', 0, 0);
 
     auto fs = makeFunction(&Fun::say);
     fs();
@@ -108,7 +118,7 @@ int main() {
     fp(fun, fun);
 
     auto ff = makeFunction(&Fun::operator());
-    ff(&fun);
+    ff(fun);
 
     auto fl = makeFunction([]() { printf("Support lambda"); });
     fl();
