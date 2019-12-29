@@ -31,22 +31,6 @@ namespace v9::kit {
         Tuple<Ps...> _withPlaceholders;
 
     private:
-        template <typename T>
-        struct IsPlaceholder {
-            static constexpr bool value = false;
-        };
-
-        template <size_t N>
-        struct IsPlaceholder<Placeholders::Index<N>> {
-            static constexpr bool value = true;
-        };
-
-        template <typename T>
-        static constexpr bool isPlaceholder = IsPlaceholder<T>::value;
-
-        template <typename X>
-        using fix = std::remove_reference_t<std::remove_const_t<std::remove_reference_t<X>>>;
-
         template <typename, typename>
         struct Binder;
 
@@ -54,7 +38,7 @@ namespace v9::kit {
         struct Binder<Tuple<T, Ts...>, Tuple<As...>> {
             static Tuple<T, Ts...> doit(const Tuple<T, Ts...> &placeholders,
                                         const Tuple<As...> &args) {
-                auto rest = Binder<Tuple<fix<Ts> ...>, Tuple<As ...>>::doit(
+                auto rest = Binder<Tuple<Ts ...>, Tuple<As ...>>::doit(
                     placeholders.tail(), args);
                 return rest.cons(placeholders.head());
             }
