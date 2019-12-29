@@ -5,6 +5,8 @@
 #include <v9/kit/tuple.hpp>
 
 #include <cxxabi.h>
+#include <cstdlib>
+#include <typeinfo>
 
 template <typename T>
 struct show {
