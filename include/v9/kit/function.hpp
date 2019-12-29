@@ -11,36 +11,17 @@ namespace v9::kit {
     template <typename T>
     using FunctionAlias = std::function<T>;
 
-    /**
-     * Remove all qualifiers from typenames.
-     * e.g. `const std::string &` -> `std::string`
-     *
-     * @tparam Args typenames
-     */
     template <typename ... Args>
-    struct TypePurifier {
+    struct ArgTypeInfo {
+        /**
+         * Remove all qualifiers from typenames.
+         * e.g. `const std::string &` -> `std::string`
+         *
+         * @tparam Args typenames
+         */
         template <typename T>
         using Purify = std::remove_const_t<std::remove_reference_t<std::remove_const_t<T>>>;
 
-        template <typename ...>
-        struct QualifierRemover;
-
-        template <typename A, typename ... As>
-        struct QualifierRemover<A, As...> {
-            using RestList = typename QualifierRemover<As...>::Type;
-            using Type = TypeList::cons<Purify<A>, RestList>;
-        };
-
-        template <>
-        struct QualifierRemover<> {
-            using Type = TypeList::Empty;
-        };
-
-        using Type = typename QualifierRemover<Args...>::Type;
-    };
-
-    template <typename ... Args>
-    struct ArgTypeInfo {
         /**
          * Raw argument types, unmodified.
          */
@@ -50,7 +31,7 @@ namespace v9::kit {
          * Purified argument types, with all qualifiers removed.
          * @see TypePurifier
          */
-        using PureArgTypes = typename TypePurifier<Args...>::Type;
+        using PureArgTypes = TypeList::List<Purify<Args>...>;
     };
 
     /**
