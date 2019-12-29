@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <functional>
 #include <v9/kit/typelist.hpp>
 
 namespace v9::kit {
