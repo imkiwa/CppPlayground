@@ -26,7 +26,7 @@ namespace v9::kit {
     class Bind;
 
     template <typename F, typename R, typename ... Args, typename ... Ps>
-    class Bind<F, R, TypeList::List<Args...>, Ps...> {
+    class Bind<F, R, TypeList::List<Args...>, TypeList::List<Ps...>> {
         F _f;
         Tuple<Ps...> _withPlaceholders;
 
@@ -118,6 +118,6 @@ namespace v9::kit {
     auto bind(F &&f, Ps &&... ps) {
         using R = typename FunctionParser<F>::ReturnType;
         using A = typename FunctionParser<F>::PureArgTypes;
-        return Bind<F, R, A, Ps...>(f, std::forward<Ps>(ps)...);
+        return Bind<F, R, A, TypeList::List<Ps...>>(f, std::forward<Ps>(ps)...);
     }
 }
