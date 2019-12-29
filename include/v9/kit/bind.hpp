@@ -15,11 +15,11 @@ namespace v9::kit {
             static constexpr size_t value = N;
         };
 
-        static constexpr Index<1> _1 = Index<1>();
-        static constexpr Index<2> _2 = Index<2>();
-        static constexpr Index<3> _3 = Index<3>();
-        static constexpr Index<4> _4 = Index<4>();
-        static constexpr Index<5> _5 = Index<5>();
+        static constexpr auto _1 = Index<1>();
+        static constexpr auto _2 = Index<2>();
+        static constexpr auto _3 = Index<3>();
+        static constexpr auto _4 = Index<4>();
+        static constexpr auto _5 = Index<5>();
     };
 
     template <typename, typename, typename, typename ...>
