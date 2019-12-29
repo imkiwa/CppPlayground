@@ -50,6 +50,7 @@ add_executable(staticlist tests/staticlist.cpp)
 add_executable(tuple tests/tuple.cpp)
 add_executable(ai-compiler tests/ai-compiler.cpp)
 add_executable(tmp00 tests/tmp-00.cpp)
+add_executable(bind tests/bind.cpp)
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/works)
     add_subdirectory(works)
