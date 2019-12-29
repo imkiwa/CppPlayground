@@ -113,34 +113,34 @@ namespace v9::kit {
     template <typename U, typename ... Us>
     struct TupleTail<TypeList::List<U, Us...>> {
         template <typename>
-        struct Builder;
+        struct Impl;
 
         template <size_t ... Is>
-        struct Builder<StaticList::List<size_t, Is...>> {
+        struct Impl<StaticList::List<size_t, Is...>> {
             static Tuple<Us...> doit(const Tuple<U, Us...> *tuple) {
                 return makeTuple(tuple->template get<Is + 1>()...);
             }
         };
 
         static Tuple<Us...> doit(const Tuple<U, Us...> *tuple) {
-            return Builder<makeTupleIndices<Us...>>::doit(tuple);
+            return Impl<makeTupleIndices<Us...>>::doit(tuple);
         }
     };
 
     template <typename N, typename ... Us>
     struct TupleCons<N, TypeList::List<Us...>> {
         template <typename>
-        struct Builder;
+        struct Impl;
 
         template <size_t ... Is>
-        struct Builder<StaticList::List<size_t, Is...>> {
+        struct Impl<StaticList::List<size_t, Is...>> {
             static Tuple<N, Us...> doit(const Tuple<Us...> *tuple, N &&n) {
                 return makeTuple(std::forward<N>(n), tuple->template get<Is>()...);
             }
         };
 
         static Tuple<N, Us...> doit(const Tuple<Us...> *tuple, N &&n) {
-            return Builder<makeTupleIndices<Us...>>::doit(tuple, std::forward<N>(n));
+            return Impl<makeTupleIndices<Us...>>::doit(tuple, std::forward<N>(n));
         }
     };
 }
