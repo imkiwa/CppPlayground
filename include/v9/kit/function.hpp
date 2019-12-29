@@ -14,15 +14,6 @@ namespace v9::kit {
     template <typename ... Args>
     struct ArgTypeInfo {
         /**
-         * Remove all qualifiers from typenames.
-         * e.g. `const std::string &` -> `std::string`
-         *
-         * @tparam Args typenames
-         */
-        template <typename T>
-        using Purify = std::remove_const_t<std::remove_reference_t<std::remove_const_t<T>>>;
-
-        /**
          * Raw argument types, unmodified.
          */
         using ArgTypes = TypeList::List<Args...>;
@@ -31,7 +22,7 @@ namespace v9::kit {
          * Purified argument types, with all qualifiers removed.
          * @see TypePurifier
          */
-        using PureArgTypes = TypeList::List<Purify<Args>...>;
+        using PureArgTypes = TypeList::List<std::decay_t<Args>...>;
     };
 
     /**

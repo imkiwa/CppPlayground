@@ -18,7 +18,6 @@ struct show {
     }
 };
 
-
 int main() {
     using namespace v9::kit;
 
