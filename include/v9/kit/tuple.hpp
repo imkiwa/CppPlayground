@@ -91,16 +91,16 @@ namespace v9::kit {
             return _data.template get<Index>();
         }
 
-        auto tail() {
+        auto tail() const {
             return TupleTail<ElementTypes>::doit(this);
         }
 
-        auto head() {
+        auto head() const {
             return get<0>();
         }
 
         template <typename N>
-        auto cons(N &&n) {
+        auto cons(N &&n) const {
             return TupleCons<std::decay_t<N>, ElementTypes>::doit(this, std::forward<N>(n));
         }
     };
@@ -117,12 +117,12 @@ namespace v9::kit {
 
         template <size_t ... Is>
         struct Builder<StaticList::List<size_t, Is...>> {
-            static Tuple<Us...> doit(Tuple<U, Us...> *tuple) {
+            static Tuple<Us...> doit(const Tuple<U, Us...> *tuple) {
                 return makeTuple(tuple->template get<Is + 1>()...);
             }
         };
 
-        static Tuple<Us...> doit(Tuple<U, Us...> *tuple) {
+        static Tuple<Us...> doit(const Tuple<U, Us...> *tuple) {
             return Builder<makeTupleIndices<Us...>>::doit(tuple);
         }
     };
@@ -134,12 +134,12 @@ namespace v9::kit {
 
         template <size_t ... Is>
         struct Builder<StaticList::List<size_t, Is...>> {
-            static Tuple<N, Us...> doit(Tuple<Us...> *tuple, N &&n) {
+            static Tuple<N, Us...> doit(const Tuple<Us...> *tuple, N &&n) {
                 return makeTuple(std::forward<N>(n), tuple->template get<Is>()...);
             }
         };
 
-        static Tuple<N, Us...> doit(Tuple<Us...> *tuple, N &&n) {
+        static Tuple<N, Us...> doit(const Tuple<Us...> *tuple, N &&n) {
             return Builder<makeTupleIndices<Us...>>::doit(tuple, std::forward<N>(n));
         }
     };

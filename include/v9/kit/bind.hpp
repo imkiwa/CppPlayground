@@ -52,8 +52,8 @@ namespace v9::kit {
 
         template <typename T, typename ...Ts, typename ... As>
         struct Binder<Tuple<T, Ts...>, Tuple<As...>> {
-            static Tuple<T, Ts...> doit(Tuple<T, Ts...> placeholders,
-                                        Tuple<As...> args) {
+            static Tuple<T, Ts...> doit(const Tuple<T, Ts...> &placeholders,
+                                        const Tuple<As...> &args) {
                 auto rest = Binder<Tuple<fix<Ts> ...>, Tuple<As ...>>::doit(
                     placeholders.tail(), args);
                 return rest.cons(placeholders.head());
@@ -62,8 +62,8 @@ namespace v9::kit {
 
         template <typename A, typename ...Ts, typename ... As, size_t N>
         struct Binder<Tuple<Placeholders::Index<N>, Ts...>, Tuple<A, As...>> {
-            static Tuple<A, Ts...> doit(Tuple<const Placeholders::Index<N> &, Ts...> placeholders,
-                                        Tuple<A, As...> args) {
+            static Tuple<A, Ts...> doit(const Tuple<const Placeholders::Index<N> &, Ts...> &placeholders,
+                                        const Tuple<A, As...> &args) {
                 auto rest = Binder<Tuple<Ts ...>, Tuple<As ...>>::doit(
                     placeholders.tail(), args.tail());
                 return rest.cons(args.template get<N - 1>());
@@ -72,7 +72,7 @@ namespace v9::kit {
 
         template <>
         struct Binder<Tuple<>, Tuple<>> {
-            static Tuple<> doit(Tuple<>, Tuple<>) {
+            static Tuple<> doit(const Tuple<> &, const Tuple<> &) {
                 return makeTuple();
             }
         };
@@ -87,12 +87,12 @@ namespace v9::kit {
 
             template <size_t ... Is>
             struct Builder<StaticList::List<size_t, Is...>> {
-                static R doit(F &&f, Tuple<Us...> *tuple) {
-                    return f(tuple->template get<Is>()...);
+                static R doit(F &&f, const Tuple<Us...> &tuple) {
+                    return f(tuple.template get<Is>()...);
                 }
             };
 
-            static R doit(F &&f, Tuple<Us...> *tuple) {
+            static R doit(F &&f, const Tuple<Us...> &tuple) {
                 return Builder<makeTupleIndices<Us...>>::doit(std::forward<F>(f), tuple);
             }
         };
@@ -106,11 +106,11 @@ namespace v9::kit {
         R operator()(As &&...as) {
             auto placement = makeTuple(std::forward<As>(as)...);
             auto full = Binder<Tuple<std::decay_t<Ps>...>, Tuple<As ...>>::doit(_withPlaceholders, placement);
-            return Invoker<F, R, decltype(full)>::doit(_f, &full);
+            return Invoker<F, R, decltype(full)>::doit(_f, full);
         }
 
         R operator()() {
-            return Invoker<F, R, decltype(_withPlaceholders)>::doit(_f, &_withPlaceholders);
+            return Invoker<F, R, decltype(_withPlaceholders)>::doit(_f, _withPlaceholders);
         }
     };
 
