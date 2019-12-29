@@ -67,17 +67,17 @@ namespace v9::kit {
         template <typename ... Us>
         struct Invoker<F, R, Tuple<Us...>> {
             template <typename>
-            struct Builder;
+            struct Impl;
 
             template <size_t ... Is>
-            struct Builder<StaticList::List<size_t, Is...>> {
+            struct Impl<StaticList::List<size_t, Is...>> {
                 static R doit(F &&f, const Tuple<Us...> &tuple) {
                     return f(tuple.template get<Is>()...);
                 }
             };
 
             static R doit(F &&f, const Tuple<Us...> &tuple) {
-                return Builder<makeTupleIndices<Us...>>::doit(std::forward<F>(f), tuple);
+                return Impl<makeTupleIndices<Us...>>::doit(std::forward<F>(f), tuple);
             }
         };
 
