@@ -49,6 +49,16 @@ namespace v9::kit {
             using type = std::integral_constant<std::size_t, sizeof...(Ts)>;
         };
 
+        template <typename Seq, size_t Index>
+        struct Visit {
+            using type = typename Visit<typename Tail<Seq>::type, Index - 1>::type;
+        };
+
+        template <typename Seq>
+        struct Visit<Seq, 0> {
+            using type = typename Head<Seq>::type;
+        };
+
     public:
         template <typename ...>
         struct List {};
@@ -63,6 +73,9 @@ namespace v9::kit {
 
         template <typename Seq>
         using tail = typename Tail<Seq>::type;
+
+        template <typename Seq, size_t Index>
+        using visit = typename Visit<Seq, Index>::type;
 
         template <typename SeqL, typename SeqR>
         using concat = typename Concat<SeqL, SeqR>::type;
