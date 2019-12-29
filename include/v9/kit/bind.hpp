@@ -88,7 +88,7 @@ namespace v9::kit {
             template <size_t ... Is>
             struct Builder<StaticList::List<size_t, Is...>> {
                 static R doit(F &&f, Tuple<Us...> *tuple) {
-                    return makeFunction(f)(tuple->template get<Is>()...);
+                    return f(tuple->template get<Is>()...);
                 }
             };
 
