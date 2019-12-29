@@ -47,6 +47,7 @@ add_executable(timeout tests/timeout.cpp)
 add_executable(string tests/string.cpp)
 add_executable(typelist tests/typelist.cpp)
 add_executable(staticlist tests/staticlist.cpp)
+add_executable(tuple tests/tuple.cpp)
 add_executable(ai-compiler tests/ai-compiler.cpp)
 add_executable(tmp00 tests/tmp-00.cpp)
 
