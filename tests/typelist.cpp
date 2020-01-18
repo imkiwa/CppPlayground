@@ -2,7 +2,40 @@
 // Created by kiva on 2019/12/25.
 //
 #include <cstdio>
+#include <cxxabi.h>
+#include <cstdlib>
+#include <typeinfo>
+
 #include <v9/kit/typelist.hpp>
+
+using namespace v9::kit;
+
+template <int From, int To>
+struct Move {
+};
+
+template <int N, int From, int To, int Via>
+struct Hanoi {
+    using type = TypeList::concat<TypeList::concat<
+        typename Hanoi<N - 1, From, Via, To>::type,
+        TypeList::List<Move<From, To>>>,
+        typename Hanoi<N - 1, Via, To, From>::type>;
+};
+
+template <int From, int To, int Via>
+struct Hanoi<1, From, To, Via> {
+    using type = TypeList::List<Move<From, To>>;
+};
+
+template <typename T>
+struct show {
+    show() {
+        char *s = abi::__cxa_demangle(typeid(T).name(),
+            nullptr, nullptr, nullptr);
+        printf("T = %s\n", s);
+        std::free(s);
+    }
+};
 
 int main() {
     using namespace v9::kit;
@@ -38,4 +71,6 @@ int main() {
         "You wrote a bug");
     static_assert(TypeList::equals<c2, TypeList::concat<TypeList::Empty, c2>>::value,
         "You wrote a bug");
+
+    show<Hanoi<5, 1, 2, 3>::type>();
 }
