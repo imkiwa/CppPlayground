@@ -72,5 +72,5 @@ int main() {
     static_assert(TypeList::equals<c2, TypeList::concat<TypeList::Empty, c2>>::value,
         "You wrote a bug");
 
-    show<Hanoi<5, 1, 2, 3>::type>();
+    show<Hanoi<3, 1, 2, 3>::type>();
 }
