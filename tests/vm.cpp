@@ -17,15 +17,15 @@ enum Opcode { SUB, MUL, PUSH, STORE, LOAD, JNZ, HALT };
 
 class VM {
 private:
-    using CompiledCode = std::int64_t(void *);
+    using CompiledCode = int64_t(void *);
     using ManagedCompiledCode = std::unique_ptr<void, std::function<void(void *)>>;
 
-    std::vector<std::int8_t> _bytecodes;
-    std::vector<std::uint8_t> _buffer;
+    std::vector<int8_t> _bytecodes;
+    std::vector<uint8_t> _buffer;
     ManagedCompiledCode _managedCode;
 
 private:
-    void pushCode(std::initializer_list<std::uint8_t> code) {
+    void pushCode(std::initializer_list<uint8_t> code) {
         _buffer.insert(_buffer.end(), code);
     }
 
@@ -110,9 +110,9 @@ private:
     }
 
 public:
-    VM(std::initializer_list<std::int8_t> code) : _bytecodes(code) {}
+    VM(std::initializer_list<int8_t> code) : _bytecodes(code) {}
 
-    std::int64_t run() {
+    int64_t run() {
         char stack[64 * 8] = {0};
         return compile()(stack);
     }
@@ -137,7 +137,7 @@ public:
                     break;
                 }
                 case PUSH: {
-                    std::int64_t imm = _bytecodes[++pc];
+                    int64_t imm = _bytecodes[++pc];
                     genPush(imm);
                     break;
                 }
@@ -164,10 +164,10 @@ public:
         }
         // backfill labels
         for (const auto &it : backfill) {
-            std::int32_t offset = labels[it.second];
+            int32_t offset = labels[it.second];
             offset -= it.first + 4;
             for (int i = 0; i < 4; ++i) {
-                _buffer[it.first + i] = reinterpret_cast<std::uint8_t *>(&offset)[i];
+                _buffer[it.first + i] = reinterpret_cast<uint8_t *>(&offset)[i];
             }
         }
         // create executable buffer
@@ -175,7 +175,7 @@ public:
     }
 };
 
-std::int64_t fact(std::int8_t n) {
+int64_t fact(int8_t n) {
     VM vm = {
         PUSH, n, STORE, PUSH, 1,
         LOAD, MUL,
