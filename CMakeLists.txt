@@ -54,6 +54,7 @@ add_executable(bind tests/bind.cpp)
 add_executable(ref-value tests/ref-value.cpp)
 add_executable(vptr tests/vptr.cpp)
 add_executable(oop-c tests/oop.c)
+add_executable(vm tests/vm.cpp)
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/works)
     add_subdirectory(works)
