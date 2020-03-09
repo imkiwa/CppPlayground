@@ -535,19 +535,25 @@ int main() {
     auto p2_im = borrow<L1>(value);
 
     auto p2 = borrow_mut<L2>(p1);
+
     // cannot borrow `p1` as immutable because it also borrowed as mutable
 //    auto p3_ = borrow<L2>(p1);
 
     // cannot borrow `p1` as mutable because it is already borrowed as mutable
 //    auto p3__ = borrow_mut<L2>(p1); // will compile error
 
-//    *p2_im = 1; // p2_im is borrowed as immutable
+    // p2_im is borrowed as immutable
+//    *p2_im = 1;
+
     DELETE_LIFETIME(L2);
 
     *p1 = 2;
-//    *p2; // p2 outlives L2
+
+    // p2 outlives L2
+//    *p2;
 
     auto p4 = borrow_mut<L4>(p1);
+
     // can! borrow `p1` as immutable because it is also borrowed as mutable
 //    auto p5 = borrow<L5>(p1); // will compile error
     *p4 += 1;
@@ -557,5 +563,6 @@ int main() {
     DELETE_LIFETIME(L5);
 
     DELETE_LIFETIME(L1);
-//    *p1 = 2; // p1 outlives L1
+    // p1 outlives L1
+//    *p1 = 2;
 }
