@@ -34,7 +34,7 @@ namespace details {
     };
 
     template <typename F>
-    struct FunctionParser : public FunctorParser<F> {
+    struct FunctionParser : public FunctionParser<decltype(&F::operator())> {
     };
 
     template <typename P>
@@ -101,25 +101,32 @@ struct Fun {
 void fptr(Fun, Fun) { printf("Support function pointers\n"); }
 
 int main() {
-    Fun fun;
+//    auto f = []() { printf("ok"); };
+    auto f = []() { printf("ok"); return 100; };
+    using R = typename details::FunctionParser<decltype(f)>::ReturnType;
+    printf("%s\n", typeid(R).name());
+//    using T = FunctionType<decltype(f)>;
+//    T t = f;
 
-    printf("addr of fun: %p\n", &fun);
-
-    auto fm = makeFunction(&Fun::hi);
-    fm(fun, 0, 0, '0');
-
-    auto fc = makeFunction(&Fun::hi_const);
-    fc(fun, '0', 0, 0);
-
-    auto fs = makeFunction(&Fun::say);
-    fs();
-
-    auto fp = makeFunction(fptr);
-    fp(fun, fun);
-
-    auto ff = makeFunction(&Fun::operator());
-    ff(fun);
-
-    auto fl = makeFunction([]() { printf("Support lambda"); });
-    fl();
+//    Fun fun;
+//
+//    printf("addr of fun: %p\n", &fun);
+//
+//    auto fm = makeFunction(&Fun::hi);
+//    fm(fun, 0, 0, '0');
+//
+//    auto fc = makeFunction(&Fun::hi_const);
+//    fc(fun, '0', 0, 0);
+//
+//    auto fs = makeFunction(&Fun::say);
+//    fs();
+//
+//    auto fp = makeFunction(fptr);
+//    fp(fun, fun);
+//
+//    auto ff = makeFunction(&Fun::operator());
+//    ff(fun);
+//
+//    auto fl = makeFunction([]() { printf("Support lambda"); });
+//    fl();
 }
