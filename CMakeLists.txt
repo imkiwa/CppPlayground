@@ -58,6 +58,7 @@ add_executable(vm tests/vm.cpp)
 add_executable(dustbin tests/dustbin.cpp)
 add_executable(pay tests/pay.cpp)
 add_executable(lifetime tests/lifetime.cpp)
+add_executable(leetcode524 tests/leetcode524.cpp)
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/works)
     add_subdirectory(works)
