@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdio>
 #include <type_traits>
 
 namespace v9::kit {
