@@ -16,7 +16,7 @@ enum Opcode {
     STORE /* n */,      // store stack top to local[n]
     BIPUSH /* i */,     // push i onto stack
     INC,                // increase stack top
-    PRINTLN,               // dump VM info
+    PRINTLN,            // dump VM info
     CALL_CC /* n */,    // call/cc function named name[n]
     YIELD /* n */,      // resume continuation (local[n]) with stack top
     RESUME /* n */,     // resume continuation (local[n])
