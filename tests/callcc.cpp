@@ -47,7 +47,7 @@ struct Frame {
     std::vector<Object> _local;
     std::stack<Object> _stack;
     std::shared_ptr<Function> _func;
-    int _resumed_from = -1;
+    int _resumed_to_index = -1;
     int _pc = 0;
 
     explicit Frame(const std::shared_ptr<Function> &func)
@@ -73,12 +73,6 @@ struct VM {
 
     void run() {
         while (_current->_pc < _current->_func->_body.size()) {
-            if (_current->_resumed_from != -1) {
-                _current->_local[_current->_resumed_from] = std::move(_current->_stack.top());
-                _current->_stack.pop();
-                _current->_resumed_from = -1;
-            }
-
             switch (_current->_func->_body[_current->_pc++]) {
                 case Opcode::LOAD: {
                     int index = _current->_func->_body[_current->_pc++];
@@ -132,7 +126,13 @@ struct VM {
                         caller->_frame->_stack.push(std::move(_current->_stack.top()));
                         _current->_stack.pop();
                     }
-                    caller->_frame->_stack.push(current_cont());
+                    // if caller resumed us, we update the continuation stored in the caller
+                    if (caller->_frame->_resumed_to_index != -1) {
+                        caller->_frame->_local[_current->_resumed_to_index] = current_cont();
+                        caller->_frame->_resumed_to_index = -1;
+                    } else {
+                        caller->_frame->_stack.push(current_cont());
+                    }
                     // switch context
                     _current = caller->_frame;
                     break;
@@ -141,7 +141,7 @@ struct VM {
                     int index = _current->_func->_body[_current->_pc++];
                     auto *cont = _current->_local[index].cont;
                     // for auto-update cont in this scope
-                    _current->_resumed_from = index;
+                    _current->_resumed_to_index = index;
                     // switch context
                     _current = cont->_frame;
                     break;
