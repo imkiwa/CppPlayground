@@ -519,24 +519,24 @@ namespace borrow {
 #define NEW_LIFETIME(LT) struct LT { struct lifetime_info; };
 #define DELETE_LIFETIME(LT) struct LT::lifetime_info { struct destroyed; };
 
-#define safe_new(LT, var, type)                 \
-    NEW_LIFETIME(LT);                           \
-    auto *__##LT##__ptr = new type;   \
-    auto var = borrow_mut<LT>(*__##LT##__ptr)
+#define safe_new(type, var)                                 \
+    NEW_LIFETIME(lifetime_##var);                           \
+    auto *__##var##__ptr = new type;                         \
+    auto var = borrow_mut<lifetime_##var>(*__##var##__ptr)
 
-#define safe_delete(LT, var) \
-    delete __##LT##__ptr;             \
-    DELETE_LIFETIME(LT)
+#define safe_delete(var)                \
+    delete __##var##__ptr;               \
+    DELETE_LIFETIME(lifetime_##var)
 
 int main() {
     using borrow::borrow;
     using borrow::borrow_mut;
 
-    safe_new($, fuck, int);
+    safe_new(int, fuck);
     *fuck = 10;
-    printf("fuck = %d\n", *fuck);
-    safe_delete($, fuck);
-    printf("fuck = %d\n", *fuck);
+    printf("before delete, fuck = %d\n", *fuck);
+    safe_delete(fuck);
+    printf("after delete, fuck = %d\n", *fuck);
 
     int value = 0;
     NEW_LIFETIME(L1);
