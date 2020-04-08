@@ -641,7 +641,7 @@ namespace parser {
             return std::move(top);
         }
 
-        bool peek(operator_type type) {
+        bool coming(operator_type type) {
             ensure_token();
 
             auto &top = _tokens.front();
@@ -653,7 +653,7 @@ namespace parser {
             return opt->_op_type == type;
         }
 
-        bool peek(token_type type) {
+        bool coming(token_type type) {
             ensure_token();
 
             auto &top = _tokens.front();
@@ -694,7 +694,7 @@ namespace parser {
 
             auto d = std::make_unique<decl>();
 
-            while (!peek(operator_type::OPERATOR_RBRACE)) {
+            while (!coming(operator_type::OPERATOR_RBRACE)) {
                 auto name = consume(token_type::ID_OR_KW);
                 consume(operator_type::OPERATOR_COLON);
                 auto type = parse_type();
