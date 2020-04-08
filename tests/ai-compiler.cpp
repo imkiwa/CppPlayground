@@ -4,6 +4,7 @@
 
 #include <random>
 #include <fstream>
+#include <ctime>
 #include <v9/kit/string.hpp>
 #include <v9/kit/error.hpp>
 
