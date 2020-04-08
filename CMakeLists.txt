@@ -61,6 +61,8 @@ add_executable(pay tests/pay.cpp)
 add_executable(lifetime tests/lifetime.cpp)
 add_executable(callcc tests/callcc.cpp)
 add_executable(leetcode524 tests/leetcode524.cpp)
+add_executable(linkedlist tests/linkedlist.c)
+add_executable(cyaron tests/cyaron-lang.cpp)
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/works)
     add_subdirectory(works)
