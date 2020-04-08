@@ -101,7 +101,7 @@ Vec<Zero, T> make_empty_vector() {
 
 int main() {
     auto a = make_empty_vector<int>();
-    a[0];
+//    a[0];
     auto b = a.push(10);
     b[0];
 }
