@@ -688,6 +688,11 @@ namespace parser {
             mpp::throw_ex<parser_error>("unsupported type name", std::move(name));
         }
 
+        std::string parse_id() {
+            auto id = consume(token_type::ID_OR_KW);
+            return id->_token_text;
+        }
+
         std::unique_ptr<decl> parse_decl() {
             consume(operator_type::OPERATOR_LBRACE);
             consume(token_type::ID_OR_KW, "vars");
@@ -705,11 +710,63 @@ namespace parser {
             return d;
         }
 
-        std::unique_ptr<stmt> parse_stmt() {}
+        std::unique_ptr<stmt> parse_loop_stmt() {
+            consume(operator_type::OPERATOR_LBRACKET);
+            auto kw = consume(token_type::ID_OR_KW);
+            if (kw->_token_text == "while") {
+                auto loop = std::make_unique<stmt_while>();
+                loop->_cond = parse_expr();
+                loop->_body = parse_stmts();
+                consume(operator_type::OPERATOR_RBRACKET);
+                return loop;
+
+            } else if (kw->_token_text == "for") {
+                auto loop = std::make_unique<stmt_for>();
+                loop->_var = parse_id();
+                consume(operator_type::OPERATOR_COMMA);
+                loop->_start = parse_expr();
+                consume(operator_type::OPERATOR_COMMA);
+                loop->_end = parse_expr();
+                consume(operator_type::OPERATOR_RBRACKET);
+                return loop;
+            }
+
+            mpp::throw_ex<parser_error>("unsupported loop statement");
+        }
+
+        std::unique_ptr<stmt> parse_stmt() {
+            if (coming(operator_type::OPERATOR_LBRACE)) {
+                return parse_loop_stmt();
+            }
+
+            consume(operator_type::OPERATOR_COLON);
+            auto kw = consume(token_type::ID_OR_KW);
+            if (kw->_token_text == "yosoro") {
+                auto print = std::make_unique<stmt_print>();
+                print->_var = parse_expr();
+                return print;
+            } else if (kw->_token_text == "set") {
+                auto set = std::make_unique<stmt_set>();
+                set->_var = parse_expr();
+                consume(operator_type::OPERATOR_COMMA);
+                set->_var = parse_expr();
+                return set;
+            }
+
+            mpp::throw_ex<parser_error>("unsupported statement");
+        }
 
         std::vector<std::unique_ptr<stmt>> parse_stmts() {
             std::vector<std::unique_ptr<stmt>> v{};
+            while (coming(operator_type::OPERATOR_COLON)
+                   || coming(operator_type::OPERATOR_LBRACE)) {
+                v.push_back(parse_stmt());
+            }
             return v;
+        }
+
+        std::unique_ptr<expr> parse_expr() {
+            return {};
         }
 
     public:
