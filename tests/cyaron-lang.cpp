@@ -669,6 +669,15 @@ namespace parser {
             return top->_type == type;
         }
 
+        bool coming(token_type type, const std::string &text) {
+            if (!has_token()) {
+                return false;
+            }
+
+            auto &top = _tokens.front();
+            return top->_type == type && top->_token_text == text;
+        }
+
         int consume_int() {
             ensure_token();
 
@@ -762,9 +771,17 @@ namespace parser {
             } else if (kw->_token_text == "hor") {
                 auto loop = std::make_unique<stmt_for>();
                 loop->_var = parse_id();
-                consume(operator_type::OPERATOR_COMMA);
+                if (coming(operator_type::OPERATOR_ASSIGN)) {
+                    consume(operator_type::OPERATOR_ASSIGN);
+                } else {
+                    consume(operator_type::OPERATOR_COMMA);
+                }
                 loop->_start = parse_expr();
-                consume(operator_type::OPERATOR_COMMA);
+                if (coming(token_type::ID_OR_KW, "to")) {
+                    consume(token_type::ID_OR_KW);
+                } else {
+                    consume(operator_type::OPERATOR_COMMA);
+                }
                 loop->_end = parse_expr();
                 loop->_body = parse_stmts();
                 consume(operator_type::OPERATOR_RBRACE);
@@ -1118,7 +1135,27 @@ int main() {
         {";",  operator_type::OPERATOR_SEMI},
         {"..", operator_type::OPERATOR_TO},
     });
-    lex.source(""
+    lex.source("{ vars \n"
+               "    myarr:array[int, 100..150]\n"
+               "    i:int\n"
+               "}\n"
+               "\n"
+               ":set myarr[100], 192\n"
+               ":set myarr[101], 384\n"
+               ":set myarr[102], 576\n"
+               ":set myarr[103], 219\n"
+               ":set myarr[104], 438\n"
+               ":set myarr[105], 657\n"
+               ":set myarr[106], 273\n"
+               ":set myarr[107], 546\n"
+               ":set myarr[108], 819\n"
+               ":set myarr[109], 327\n"
+               ":set myarr[110], 654\n"
+               ":set myarr[111], 981\n"
+               "\n"
+               "{ hor i = 100 to 111\n"
+               "    :yosoro myarr[i]\n"
+               "}"
     );
 
     std::deque<std::unique_ptr<token>> tokens;
