@@ -352,13 +352,10 @@ namespace lexer {
                 /////////////////////////////////////////////////////////////////
                 // special position
                 /////////////////////////////////////////////////////////////////
-                // tokens only available in the beginning of a line
-                if (line_start == p) {
-                    if (*p == '#') {
-                        // comment and preprocessor tag in CovScript 3
-                        consume_preprocessor(p, end);
-                        continue;
-                    }
+                if (*p == '#') {
+                    // comment and preprocessor tag in CovScript 3
+                    consume_preprocessor(p, end);
+                    continue;
                 }
 
                 /////////////////////////////////////////////////////////////////
@@ -880,7 +877,9 @@ namespace parser {
     public:
         std::unique_ptr<program> parse_program() {
             auto prog = std::make_unique<program>();
-            prog->_decl = parse_decl();
+            if (coming(operator_type::OPERATOR_LBRACE)) {
+                prog->_decl = parse_decl();
+            }
             prog->_stmts = parse_stmts();
             return prog;
         }
@@ -920,6 +919,9 @@ namespace rt {
         }
 
         void run_decls(std::unique_ptr<decl> &decls) {
+            if (!decls) {
+                return;
+            }
             for (auto &&decl : decls->_vars) {
                 _vars.insert(std::make_pair(decl.first, create_var(decl.second)));
             }
@@ -1116,59 +1118,8 @@ int main() {
         {";",  operator_type::OPERATOR_SEMI},
         {"..", operator_type::OPERATOR_TO},
     });
-    lex.source("{ vars\n"
-               "    chika:int\n"
-               "    you:int\n"
-               "    ruby:array[int, 1..2]\n"
-               "    i:int\n"
-               "}\n"
-               "# 以上变量默认值均为0\n"
-               "# 变量名只可是英文字母。\n"
-               "\n"
-               "# yosoro语句可以输出一个数字，随后跟一个空格。\n"
-               ":yosoro 2\n"
-               "# 输出2和一个空格(以下不再提到空格)。\n"
-               "\n"
-               "# set语句可以为变量赋值。\n"
-               "# 运算符只支持加减号即可。\n"
-               ":set chika, 1\n"
-               ":set you, 2\n"
-               ":yosoro chika + you\n"
-               "# 上一条语句将输出3\n"
-               "\n"
-               "# 以下的判断语句均使用以下的格式：\n"
-               "# 操作符，表达式，表达式\n"
-               "# 例如eq, a, 1即C语言中 a==1\n"
-               "# 所有操作符包括: lt: < gt: > le: <= ge: >= eq: == neq: !=\n"
-               "\n"
-               "# 日本来的CYaRon三人没法正确地发出if这个音，因此她们就改成了ihu。\n"
-               "{ ihu eq, chika, 1\n"
-               "    :set you, 3\n"
-               "    :yosoro 1\n"
-               "}\n"
-               "# 输出1\n"
-               "# 以上是ihu语句，无需支持else。\n"
-               "\n"
-               "# hor语句同理，\n"
-               "# for i=1 to you如下\n"
-               "{ hor i, 1, you\n"
-               "    :yosoro i\n"
-               "}\n"
-               "# 输出1 2 3\n"
-               "\n"
-               "# 如下是while和数组的使用方法。\n"
-               ":set i, 1\n"
-               "{ while le, i, 2\n"
-               "    :yosoro i\n"
-               "    :set ruby[i], i+1\n"
-               "    :yosoro ruby[i]\n"
-               "    :set i, i+1\n"
-               "}\n"
-               "# 输出1 2 2 3\n"
-               "\n"
-               "# 数组不会出现嵌套，即只会有a[i]、a[i+2]而不会有类似于a[i+b[i]]这样的。\n"
-               "\n"
-               "# CYaRon语的最后一行，一定是一个换行。");
+    lex.source(""
+    );
 
     std::deque<std::unique_ptr<token>> tokens;
     lex.lex(tokens);
