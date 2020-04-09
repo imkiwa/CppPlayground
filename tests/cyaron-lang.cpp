@@ -513,7 +513,7 @@ namespace tree {
     };
 
     struct expr_binary : public expr {
-        std::string op;
+        operator_type op_type;
         std::unique_ptr<expr> lhs;
         std::unique_ptr<expr> rhs;
 
@@ -690,6 +690,27 @@ namespace parser {
                    || text == "ne";
         }
 
+        operator_type to_operator(const std::string &text) {
+            if (text == "lt") {
+                return operator_type::OPERATOR_LT;
+            } else if (text == "le") {
+                return operator_type::OPERATOR_LE;
+            } else if (text == "gt") {
+                return operator_type::OPERATOR_GT;
+            } else if (text == "ge") {
+                return operator_type::OPERATOR_GE;
+            } else if (text == "ne") {
+                return operator_type::OPERATOR_NE;
+            } else if (text == "eq") {
+                return operator_type::OPERATOR_EQ;
+            } else if (text == "+") {
+                return operator_type::OPERATOR_ADD;
+            } else if (text == "-") {
+                return operator_type::OPERATOR_SUB;
+            }
+            mpp::throw_ex<parser_error>("unsupported operator");
+        }
+
         std::unique_ptr<rt::type> parse_type() {
             auto name = consume(token_type::ID_OR_KW);
             if (name->_token_text == "int") {
@@ -778,7 +799,7 @@ namespace parser {
                 auto set = std::make_unique<stmt_set>();
                 set->_var = parse_expr();
                 consume(operator_type::OPERATOR_COMMA);
-                set->_var = parse_expr();
+                set->_value = parse_expr();
                 return set;
             }
 
@@ -796,7 +817,7 @@ namespace parser {
 
         std::unique_ptr<expr> parse_expr_relation(const std::string &op) {
             auto expr = std::make_unique<expr_binary>(expr_type::BINARY_RELATION);
-            expr->op = op;
+            expr->op_type = to_operator(op);
             consume(operator_type::OPERATOR_COMMA);
             expr->lhs = parse_expr();
             consume(operator_type::OPERATOR_COMMA);
@@ -831,7 +852,7 @@ namespace parser {
                 auto op = consume(token_type::OPERATOR);
                 auto rhs = parse_expr();
                 auto expr = std::make_unique<expr_binary>(expr_type::BINARY_MATH);
-                expr->op = op->_token_text;
+                expr->op_type = to_operator(op->_token_text);
                 expr->lhs = std::move(lhs);
                 expr->rhs = std::move(rhs);
                 return expr;
@@ -862,6 +883,205 @@ namespace parser {
             prog->_decl = parse_decl();
             prog->_stmts = parse_stmts();
             return prog;
+        }
+    };
+}
+
+namespace rt {
+    using namespace tree;
+
+    struct value {
+        type_type _type;
+        int _start;
+        int *_value;
+    };
+
+    struct interpreter {
+    private:
+        std::unordered_map<std::string, std::shared_ptr<value>> _vars;
+
+    private:
+        std::shared_ptr<value> create_var(std::unique_ptr<rt::type> &type) {
+            auto val = std::make_shared<value>();
+            val->_type = type->get_type_type();
+
+            switch (type->get_type_type()) {
+                case rt::type_type::INT:
+                    val->_value = new int;
+                    val->_start = 0;
+                    break;
+                case rt::type_type::ARRAY:
+                    auto t = static_cast<array_type *>(type.get());
+                    val->_value = new int[t->_length];
+                    val->_start = t->_start_index;
+                    break;
+            }
+            return val;
+        }
+
+        void run_decls(std::unique_ptr<decl> &decls) {
+            for (auto &&decl : decls->_vars) {
+                _vars.insert(std::make_pair(decl.first, create_var(decl.second)));
+            }
+        }
+
+        std::shared_ptr<value> wrap_value(int *ptr) {
+            auto result = std::make_shared<value>();
+            result->_start = 0;
+            result->_type = type_type::INT;
+            result->_value = ptr;
+            return result;
+        }
+
+        std::shared_ptr<value> wrap_value(int val) {
+            auto result = std::make_shared<value>();
+            result->_start = 0;
+            result->_type = type_type::INT;
+            result->_value = new int(val);
+            return result;
+        }
+
+        std::shared_ptr<value> eval_expr_atom_id(expr_atom *expr) {
+            auto iter = _vars.find(expr->_str);
+            if (iter == _vars.end()) {
+                mpp::throw_ex<std::runtime_error>("Variable not found");
+            }
+            return iter->second;
+        }
+
+        std::shared_ptr<value> eval_expr_atom_visit(expr_atom *expr) {
+            auto arr = eval_expr_atom_id(expr);
+            int index = *eval_expr(expr->_index)->_value;
+            int offset = index - arr->_start;
+            return wrap_value(arr->_value + offset);
+        }
+
+        std::shared_ptr<value> eval_expr_atom_lit(expr_atom *expr) {
+            return wrap_value(expr->_i32);
+        }
+
+        std::shared_ptr<value> eval_expr_binary_relation(expr_binary *expr) {
+            auto lhs = eval_expr(expr->lhs);
+            auto rhs = eval_expr(expr->rhs);
+            switch (expr->op_type) {
+                case operator_type::OPERATOR_LT:
+                    return wrap_value(*(lhs->_value) < *(rhs->_value));
+                case operator_type::OPERATOR_LE:
+                    return wrap_value(*(lhs->_value) <= *(rhs->_value));
+                case operator_type::OPERATOR_GT:
+                    return wrap_value(*(lhs->_value) > *(rhs->_value));
+                case operator_type::OPERATOR_GE:
+                    return wrap_value(*(lhs->_value) >= *(rhs->_value));
+                case operator_type::OPERATOR_NE:
+                    return wrap_value(*(lhs->_value) != *(rhs->_value));
+                case operator_type::OPERATOR_EQ:
+                    return wrap_value(*(lhs->_value) == *(rhs->_value));
+            }
+            mpp::throw_ex<std::runtime_error>("unsupported relation operator");
+        }
+
+        std::shared_ptr<value> eval_expr_binary_math(expr_binary *expr) {
+            auto lhs = eval_expr(expr->lhs);
+            auto rhs = eval_expr(expr->rhs);
+            switch (expr->op_type) {
+                case operator_type::OPERATOR_ADD:
+                    return wrap_value(*(lhs->_value) + *(rhs->_value));
+                case operator_type::OPERATOR_SUB:
+                    return wrap_value(*(lhs->_value) - *(rhs->_value));
+            }
+            mpp::throw_ex<std::runtime_error>("unsupported math operator");
+        }
+
+        std::shared_ptr<value> eval_expr(std::unique_ptr<expr> &expr) {
+            switch (expr->_expr_type) {
+                case expr_type::ATOM_ID:
+                    return eval_expr_atom_id(static_cast<expr_atom *>(expr.get()));
+                case expr_type::ATOM_VISIT:
+                    return eval_expr_atom_visit(static_cast<expr_atom *>(expr.get()));
+                case expr_type::ATOM_LIT:
+                    return eval_expr_atom_lit(static_cast<expr_atom *>(expr.get()));
+                case expr_type::BINARY_RELATION:
+                    return eval_expr_binary_relation(static_cast<expr_binary *>(expr.get()));
+                case expr_type::BINARY_MATH:
+                    return eval_expr_binary_math(static_cast<expr_binary *>(expr.get()));
+            }
+        }
+
+        void run_stmt_for(stmt_for *stmt) {
+            auto start = *eval_expr(stmt->_start)->_value;
+            auto end = *eval_expr(stmt->_end)->_value;
+            _vars.insert(std::make_pair(stmt->_var, wrap_value(start)));
+
+            for (int i = start; i <= end; ++i) {
+                *(_vars[stmt->_var])->_value = i;
+                run_stmts(stmt->_body);
+            }
+        }
+
+        void run_stmt_while(stmt_while *stmt) {
+            while (true) {
+                auto cond = *eval_expr(stmt->_cond)->_value;
+                if (!cond) {
+                    break;
+                }
+                run_stmts(stmt->_body);
+            }
+        }
+
+        void run_stmt_if(stmt_if *stmt) {
+            auto cond = *eval_expr(stmt->_cond)->_value;
+            if (cond) {
+                run_stmts(stmt->_body);
+            }
+        }
+
+        void run_stmt_set(stmt_set *stmt) {
+            auto var = eval_expr(stmt->_var);
+            auto value = eval_expr(stmt->_value);
+            if (var->_type != value->_type) {
+                mpp::throw_ex<std::runtime_error>("unsupported assign");
+            }
+
+            *(var->_value) = *(value->_value);
+        }
+
+        void run_stmt_print(stmt_print *stmt) {
+            auto val = eval_expr(stmt->_var);
+            switch (val->_type) {
+                case type_type::INT:
+                    printf("%d ", *val->_value);
+                    break;
+                case type_type::ARRAY:
+                    mpp::throw_ex<std::runtime_error>("unsupported print array");
+            }
+        }
+
+        void run_stmts(const std::vector<std::unique_ptr<stmt>> &stmts) {
+            for (auto &&stmt : stmts) {
+                switch (stmt->_stmt_type) {
+                    case stmt_type::FOR:
+                        run_stmt_for(static_cast<stmt_for *>(stmt.get()));
+                        break;
+                    case stmt_type::WHILE:
+                        run_stmt_while(static_cast<stmt_while *>(stmt.get()));
+                        break;
+                    case stmt_type::IF:
+                        run_stmt_if(static_cast<stmt_if *>(stmt.get()));
+                        break;
+                    case stmt_type::SET:
+                        run_stmt_set(static_cast<stmt_set *>(stmt.get()));
+                        break;
+                    case stmt_type::PRINT:
+                        run_stmt_print(static_cast<stmt_print *>(stmt.get()));
+                        break;
+                }
+            }
+        }
+
+    public:
+        void run(std::unique_ptr<program> prog) {
+            run_decls(prog->_decl);
+            run_stmts(prog->_stmts);
         }
     };
 }
@@ -956,5 +1176,6 @@ int main() {
     parser::parser par{std::move(tokens)};
     auto p = par.parse_program();
 
-    printf("OK\n");
+    rt::interpreter interp;
+    interp.run(std::move(p));
 }
