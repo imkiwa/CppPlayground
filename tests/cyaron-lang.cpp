@@ -9,6 +9,7 @@
 #include <utility>
 #include <string>
 #include <vector>
+#include <cstring>
 
 namespace mpp {
     template <typename T, typename... ArgsT>
@@ -469,13 +470,13 @@ namespace tree {
         ATOM_VISIT,
         ATOM_LIT,
         BINARY_RELATION,
-        BINARY_ADD,
-        BINARY_SUB,
+        BINARY_MATH,
     };
 
     enum class stmt_type {
         FOR,
         WHILE,
+        IF,
         SET,
         PRINT,
     };
@@ -505,15 +506,15 @@ namespace tree {
     struct expr_atom : public expr {
         std::string _str;
         int _i32;
+        std::unique_ptr<expr> _index;
 
-        expr_atom(expr_type type, std::string str, int i32)
-            : expr(type),
-              _str(std::move(str)), _i32(i32) {}
+        expr_atom(expr_type type)
+            : expr(type) {}
     };
 
     struct expr_binary : public expr {
+        std::string op;
         std::unique_ptr<expr> lhs;
-        std::unique_ptr<token> op;
         std::unique_ptr<expr> rhs;
 
         explicit expr_binary(expr_type type) : expr(type) {}
@@ -539,6 +540,13 @@ namespace tree {
         std::vector<std::unique_ptr<stmt>> _body;
 
         stmt_while() : stmt(stmt_type::WHILE) {}
+    };
+
+    struct stmt_if : public stmt {
+        std::unique_ptr<expr> _cond;
+        std::vector<std::unique_ptr<stmt>> _body;
+
+        stmt_if() : stmt(stmt_type::IF) {}
     };
 
     struct stmt_set : public stmt {
@@ -642,7 +650,9 @@ namespace parser {
         }
 
         bool coming(operator_type type) {
-            ensure_token();
+            if (!has_token()) {
+                return false;
+            }
 
             auto &top = _tokens.front();
             if (top->_type != token_type::OPERATOR) {
@@ -654,7 +664,9 @@ namespace parser {
         }
 
         bool coming(token_type type) {
-            ensure_token();
+            if (!has_token()) {
+                return false;
+            }
 
             auto &top = _tokens.front();
             return top->_type == type;
@@ -710,25 +722,33 @@ namespace parser {
             return d;
         }
 
-        std::unique_ptr<stmt> parse_loop_stmt() {
-            consume(operator_type::OPERATOR_LBRACKET);
+        std::unique_ptr<stmt> parse_block_stmt() {
+            consume(operator_type::OPERATOR_LBRACE);
             auto kw = consume(token_type::ID_OR_KW);
             if (kw->_token_text == "while") {
                 auto loop = std::make_unique<stmt_while>();
                 loop->_cond = parse_expr();
                 loop->_body = parse_stmts();
-                consume(operator_type::OPERATOR_RBRACKET);
+                consume(operator_type::OPERATOR_RBRACE);
                 return loop;
 
-            } else if (kw->_token_text == "for") {
+            } else if (kw->_token_text == "hor") {
                 auto loop = std::make_unique<stmt_for>();
                 loop->_var = parse_id();
                 consume(operator_type::OPERATOR_COMMA);
                 loop->_start = parse_expr();
                 consume(operator_type::OPERATOR_COMMA);
                 loop->_end = parse_expr();
-                consume(operator_type::OPERATOR_RBRACKET);
+                loop->_body = parse_stmts();
+                consume(operator_type::OPERATOR_RBRACE);
                 return loop;
+
+            } else if (kw->_token_text == "ihu") {
+                auto cond = std::make_unique<stmt_if>();
+                cond->_cond = parse_expr();
+                cond->_body = parse_stmts();
+                consume(operator_type::OPERATOR_RBRACE);
+                return cond;
             }
 
             mpp::throw_ex<parser_error>("unsupported loop statement");
@@ -736,7 +756,7 @@ namespace parser {
 
         std::unique_ptr<stmt> parse_stmt() {
             if (coming(operator_type::OPERATOR_LBRACE)) {
-                return parse_loop_stmt();
+                return parse_block_stmt();
             }
 
             consume(operator_type::OPERATOR_COLON);
@@ -765,8 +785,75 @@ namespace parser {
             return v;
         }
 
+        std::unique_ptr<expr> parse_expr_relation(const std::string &op) {
+            auto expr = std::make_unique<expr_binary>(expr_type::BINARY_RELATION);
+            expr->op = op;
+            consume(operator_type::OPERATOR_COMMA);
+            expr->lhs = parse_expr();
+            consume(operator_type::OPERATOR_COMMA);
+            expr->rhs = parse_expr();
+            return expr;
+        }
+
+        std::unique_ptr<expr> parse_atom_lit() {
+            auto lit = consume(token_type::INT_LITERAL);
+            auto *ptr = static_cast<token_int_literal *>(lit.get());
+            auto expr = std::make_unique<expr_atom>(expr_type::ATOM_LIT);
+            expr->_i32 = ptr->_value;
+            return expr;
+        }
+
+        std::unique_ptr<expr> lookahead_parse_visit(const std::string &id) {
+            auto expr = std::make_unique<expr_atom>(expr_type::ATOM_ID);
+            expr->_str = id;
+            if (coming(operator_type::OPERATOR_LBRACKET)) {
+                consume(operator_type::OPERATOR_LBRACKET);
+                auto index = parse_expr();
+                expr->_expr_type = expr_type::ATOM_VISIT;
+                expr->_index = std::move(index);
+                consume(operator_type::OPERATOR_RBRACKET);
+            }
+            return expr;
+        }
+
+        std::unique_ptr<expr> lookahead_parse_binary(std::unique_ptr<expr> lhs) {
+            if (coming(operator_type::OPERATOR_ADD)
+                || coming(operator_type::OPERATOR_SUB)) {
+                auto op = consume(token_type::OPERATOR);
+                auto rhs = parse_expr();
+                auto expr = std::make_unique<expr_binary>(expr_type::BINARY_MATH);
+                expr->op = op->_token_text;
+                expr->lhs = std::move(lhs);
+                expr->rhs = std::move(rhs);
+                return expr;
+            }
+            return lhs;
+        }
+
         std::unique_ptr<expr> parse_expr() {
-            return {};
+            if (coming(token_type::ID_OR_KW)) {
+                auto kw = consume(token_type::ID_OR_KW);
+                if (is_operator(kw->_token_text)) {
+                    return parse_expr_relation(kw->_token_text);
+                } else {
+                    auto lhs = lookahead_parse_visit(kw->_token_text);
+                    return lookahead_parse_binary(std::move(lhs));
+                }
+            } else if (coming(token_type::INT_LITERAL)) {
+                auto lit = parse_atom_lit();
+                return lookahead_parse_binary(std::move(lit));
+            }
+
+            mpp::throw_ex<parser_error>("Unsupported expression");
+        }
+
+        bool is_operator(const std::string &text) {
+            return text == "lt"
+                   || text == "le"
+                   || text == "gt"
+                   || text == "ge"
+                   || text == "eq"
+                   || text == "ne";
         }
 
     public:
