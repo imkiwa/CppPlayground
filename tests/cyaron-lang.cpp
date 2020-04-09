@@ -952,22 +952,7 @@ int main() {
 
     std::deque<std::unique_ptr<token>> tokens;
     lex.lex(tokens);
-//    for (auto &&token : tokens) {
-//        switch (token->_type) {
-//            case token_type::ID_OR_KW:
-//                printf(":: ID or KW: [%s]\n", static_cast<lexer::token_id_or_kw *>(token.get())->_value.c_str());
-//                break;
-//            case token_type::INT_LITERAL:
-//                printf(":: int literal: [%ld]\n", static_cast<lexer::token_int_literal *>(token.get())->_value);
-//                break;
-//            case token_type::OPERATOR:
-//                printf(":: operator: [%s]\n", static_cast<lexer::token_operator *>(token.get())->_value.c_str());
-//                break;
-//            default:
-//                break;
-//        }
-//    }
-//
+
     parser::parser par{std::move(tokens)};
     auto p = par.parse_program();
 
