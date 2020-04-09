@@ -681,6 +681,15 @@ namespace parser {
         }
 
     private:
+        bool is_operator(const std::string &text) {
+            return text == "lt"
+                   || text == "le"
+                   || text == "gt"
+                   || text == "ge"
+                   || text == "eq"
+                   || text == "ne";
+        }
+
         std::unique_ptr<rt::type> parse_type() {
             auto name = consume(token_type::ID_OR_KW);
             if (name->_token_text == "int") {
@@ -845,15 +854,6 @@ namespace parser {
             }
 
             mpp::throw_ex<parser_error>("Unsupported expression");
-        }
-
-        bool is_operator(const std::string &text) {
-            return text == "lt"
-                   || text == "le"
-                   || text == "gt"
-                   || text == "ge"
-                   || text == "eq"
-                   || text == "ne";
         }
 
     public:
