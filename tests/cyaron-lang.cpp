@@ -694,7 +694,7 @@ namespace parser {
                    || text == "gt"
                    || text == "ge"
                    || text == "eq"
-                   || text == "ne";
+                   || text == "neq";
         }
 
         operator_type to_operator(const std::string &text) {
@@ -706,7 +706,7 @@ namespace parser {
                 return operator_type::OPERATOR_GT;
             } else if (text == "ge") {
                 return operator_type::OPERATOR_GE;
-            } else if (text == "ne") {
+            } else if (text == "neq") {
                 return operator_type::OPERATOR_NE;
             } else if (text == "eq") {
                 return operator_type::OPERATOR_EQ;
@@ -924,13 +924,14 @@ namespace rt {
 
             switch (type->get_type_type()) {
                 case rt::type_type::INT:
-                    val->_value = new int;
+                    val->_value = new int(0);
                     val->_start = 0;
                     break;
                 case rt::type_type::ARRAY:
                     auto t = static_cast<array_type *>(type.get());
                     val->_value = new int[t->_length];
                     val->_start = t->_start_index;
+                    memset(val->_value, '\0', sizeof(int) * t->_length);
                     break;
             }
             return val;
