@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <iostream>
 
 namespace mpp {
     template <typename T, typename... ArgsT>
@@ -1135,28 +1136,15 @@ int main() {
         {";",  operator_type::OPERATOR_SEMI},
         {"..", operator_type::OPERATOR_TO},
     });
-    lex.source("{ vars \n"
-               "    myarr:array[int, 100..150]\n"
-               "    i:int\n"
-               "}\n"
-               "\n"
-               ":set myarr[100], 192\n"
-               ":set myarr[101], 384\n"
-               ":set myarr[102], 576\n"
-               ":set myarr[103], 219\n"
-               ":set myarr[104], 438\n"
-               ":set myarr[105], 657\n"
-               ":set myarr[106], 273\n"
-               ":set myarr[107], 546\n"
-               ":set myarr[108], 819\n"
-               ":set myarr[109], 327\n"
-               ":set myarr[110], 654\n"
-               ":set myarr[111], 981\n"
-               "\n"
-               "{ hor i = 100 to 111\n"
-               "    :yosoro myarr[i]\n"
-               "}"
-    );
+
+    std::string content;
+    std::string line;
+    while (std::getline(std::cin, line)) {
+        content.append(line);
+        content.push_back('\n');
+    }
+
+    lex.source(content);
 
     std::deque<std::unique_ptr<token>> tokens;
     lex.lex(tokens);
