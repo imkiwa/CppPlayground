@@ -840,11 +840,11 @@ namespace parser {
             return expr;
         }
 
-        std::unique_ptr<expr> parse_atom_lit() {
+        std::unique_ptr<expr> parse_atom_lit(bool negative) {
             auto lit = consume(token_type::INT_LITERAL);
             auto *ptr = static_cast<token_int_literal *>(lit.get());
             auto expr = std::make_unique<expr_atom>(expr_type::ATOM_LIT);
-            expr->_i32 = ptr->_value;
+            expr->_i32 = negative ? -(ptr->_value) : ptr->_value;
             return expr;
         }
 
@@ -885,7 +885,12 @@ namespace parser {
                     return lookahead_parse_binary(std::move(lhs));
                 }
             } else if (coming(token_type::INT_LITERAL)) {
-                auto lit = parse_atom_lit();
+                auto lit = parse_atom_lit(false);
+                return lookahead_parse_binary(std::move(lit));
+            } else if (coming(operator_type::OPERATOR_SUB)) {
+                // maybe negative numbers
+                consume(operator_type::OPERATOR_SUB);
+                auto lit = parse_atom_lit(true);
                 return lookahead_parse_binary(std::move(lit));
             }
 
@@ -1138,14 +1143,32 @@ int main() {
         {"..", operator_type::OPERATOR_TO},
     });
 
-    std::string content;
-    std::string line;
-    while (std::getline(std::cin, line)) {
-        content.append(line);
-        content.push_back('\n');
-    }
+//    std::string content;
+//    std::string line;
+//    while (std::getline(std::cin, line)) {
+//        content.append(line);
+//        content.push_back('\n');
+//    }
+//
+//    lex.source(content);
 
-    lex.source(content);
+    lex.source("{ vars\n"
+               "    a:array[int, 0..5]\n"
+               "    b:array[int, 50000..50005]\n"
+               "}\n"
+               "\n"
+               ":set a[0], -1\n"
+               ":set a[5], 4\n"
+               ":set b[50002], 3\n"
+               ":set b[50005], -1\n"
+               "\n"
+               ":set a[2], a[0]-b[50002]\n"
+               ":set b[50003], a[5] - b[50005]\n"
+               ":set a[3], a[2] - b[50003]\n"
+               "\n"
+               ":yosoro a[2]\n"
+               ":yosoro a[3]\n"
+               ":yosoro b[50003] - b[50005]");
 
     std::deque<std::unique_ptr<token>> tokens;
     lex.lex(tokens);

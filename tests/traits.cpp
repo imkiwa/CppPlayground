@@ -16,4 +16,7 @@ int main(int argc, const char **argv) {
     static_assert(InstanceOf<Derived, Derived>::value, "You wrote a bug");
     static_assert(!InstanceOf<Derived, Nothing>::value, "You wrote a bug");
     static_assert(!InstanceOf<Base, Nothing>::value, "You wrote a bug");
+
+
+
 }

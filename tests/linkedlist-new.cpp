@@ -1,72 +1,42 @@
 //
 // Created by kiva on 2020/4/8.
 //
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+#include <new>
+#include <list>
 
-struct Node {
-    int element;
-    Node *next;
+template <typename T>
+struct default_allocator {
+    using pointer = T *;
+    using reference = T &;
+    using const_pointer = const T *;
+    using const_reference = const T &;
+
+    T *allocate(size_t n) {
+        auto *ptr = static_cast<T *>(::malloc(n * sizeof(T)));
+        if (!ptr) {
+            throw std::bad_alloc();
+        }
+        return ptr;
+    }
+
+    void deallocate(T *ptr) {
+        if (ptr) {
+            ::free(ptr);
+        }
+    }
 };
 
-struct List {
-    Node *head;
+template <typename T, typename Allocator = default_allocator<T>>
+class list {
+public:
+    using pointer = typename Allocator::pointer;
+    using reference = typename Allocator::reference;
+    using const_pointer = typename Allocator::const_pointer;
+    using const_reference = typename Allocator::const_reference;
+    using value_type = T;
+    using size_type = size_t;
+    using difference_type = ptrdiff_t;
+    using allocator_type = Allocator;
 };
-
-Node *new_Node(int value) {
-    Node *node = new Node;
-    node->element = value;
-    node->next = nullptr;
-    return node;
-}
-
-void delete_Node(Node *n) {
-    delete n;
-}
-
-List *new_List() {
-    List *list = new List;
-    list->head = nullptr;
-    return list;
-}
-
-void delete_List(List *list) {
-    delete list;
-}
-
-// 增删查改
-
-bool is_empty(List *list) {
-    return list->head == nullptr;
-}
-
-void insert(List *list, int i) {
-    // list->head == nullptr
-    if (is_empty(list)) {
-        list->head = new_Node(i);
-        return;
-    }
-
-    Node *tail = nullptr;
-    for (Node *c = list->head; c; c = c->next) {
-        tail = c;
-    }
-
-    tail->next = new_Node(i);
-}
-
-void traverse(List *list) {
-    for (Node *c = list->head; c; c = c->next) {
-        printf("%d\n", c->element);
-    }
-}
-
-int main() {
-    List *l = new_List();
-    insert(l, 1);
-    insert(l, 2);
-    insert(l, 3);
-    insert(l, 4);
-    traverse(l);
-//    erase(l, 1);
-}
