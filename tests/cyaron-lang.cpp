@@ -1143,32 +1143,14 @@ int main() {
         {"..", operator_type::OPERATOR_TO},
     });
 
-//    std::string content;
-//    std::string line;
-//    while (std::getline(std::cin, line)) {
-//        content.append(line);
-//        content.push_back('\n');
-//    }
-//
-//    lex.source(content);
+    std::string content;
+    std::string line;
+    while (std::getline(std::cin, line)) {
+        content.append(line);
+        content.push_back('\n');
+    }
 
-    lex.source("{ vars\n"
-               "    a:array[int, 0..5]\n"
-               "    b:array[int, 50000..50005]\n"
-               "}\n"
-               "\n"
-               ":set a[0], -1\n"
-               ":set a[5], 4\n"
-               ":set b[50002], 3\n"
-               ":set b[50005], -1\n"
-               "\n"
-               ":set a[2], a[0]-b[50002]\n"
-               ":set b[50003], a[5] - b[50005]\n"
-               ":set a[3], a[2] - b[50003]\n"
-               "\n"
-               ":yosoro a[2]\n"
-               ":yosoro a[3]\n"
-               ":yosoro b[50003] - b[50005]");
+    lex.source(content);
 
     std::deque<std::unique_ptr<token>> tokens;
     lex.lex(tokens);
