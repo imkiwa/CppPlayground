@@ -3,18 +3,11 @@
 //
 
 #include <cstdio>
-#include <cstdlib>
 #include <cerrno>
 #include <cstring>
 #include <unistd.h>
-#include <fcntl.h>
 #include <netdb.h>
-#include <string>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <sys/wait.h>
-#include <sys/epoll.h>
-#include <sys/types.h>
 
 static bool RUNNING = true;
 
