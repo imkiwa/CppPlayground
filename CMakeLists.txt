@@ -65,6 +65,7 @@ add_executable(linkedlist tests/linkedlist.c)
 add_executable(linkedlist-new tests/linkedlist-new.cpp)
 add_executable(cyaron tests/cyaron-lang.cpp)
 add_executable(ptr tests/ptr.cpp)
+add_executable(http-server tests/http-server.cpp)
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/works)
     add_subdirectory(works)
