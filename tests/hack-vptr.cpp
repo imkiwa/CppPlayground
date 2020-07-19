@@ -13,7 +13,7 @@ public:
 };
 
 void test_hack(Child *_this) {
-    printf("女装真香\n");
+    printf("Hacked\n");
 }
 
 void call_test(Base *base) {
