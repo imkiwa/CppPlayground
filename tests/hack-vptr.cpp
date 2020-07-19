@@ -16,15 +16,11 @@ void test_hack(Child *_this) {
     printf("Hacked\n");
 }
 
-void call_test(Base *base) {
-    base->test();
-}
-
 int main() {
-    Base *mikecovlee = new Child;
+    Base *obj = new Child;
 
     void *new_vptr[] = {reinterpret_cast<void *>(test_hack)};
-    *((void ***) mikecovlee) = new_vptr;
+    *((void ***) obj) = new_vptr;
 
-    call_test(mikecovlee);
+    obj->test();
 }
