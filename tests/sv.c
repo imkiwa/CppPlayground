@@ -2,78 +2,42 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define MAX 32
+#define COMMAND_OK 0
+#define COMMAND_ERR 1
+#define NAME_LEN 32
+#define NUM_LEN 32
+#define NAME_INPUT "%32s"
+#define NUM_INPUT "%32s"
+#define MAX 128
+#define CONTACT_FILE "contacts.db"
 
-typedef enum ProductKind {
-    METAL,
-    PLASTIC,
-    MEAL,
-    PLANT,
-} ProductKind;
+typedef struct People {
+    char name[NAME_LEN];
+    char number[NUM_LEN];
+} People;
 
-const char *ProductKind_show(ProductKind kind) {
-    switch (kind) {
-        case METAL:
-            return "metal";
-        case PLASTIC:
-            return "plastic";
-        case MEAL:
-            return "meal";
-        case PLANT:
-            return "plant";
-        default:
-            printf("unreachable\n");
-            exit(-1);
-    }
-}
-
-typedef struct Product {
-    char name[32];
-    char unit[32];
-    long time;
-    ProductKind kind;
-    double amount;
-} Product;
-
-Product *Product_new(long time, ProductKind kind,
-                     const char *name, double amount,
-                     const char *unit) {
-    Product *p = malloc(sizeof(Product));
-    p->time = time;
-    p->kind = kind;
-    p->amount = amount;
+People *People_new(const char *name, const char *num) {
+    People *p = malloc(sizeof(People));
     strncpy(p->name, name, sizeof(p->name));
-    strncpy(p->unit, unit, sizeof(p->unit));
+    strncpy(p->number, num, sizeof(p->number));
     return p;
 }
 
-void Product_show(Product *this) {
-    if (this == NULL) {
-        printf("java.lang.NullPointerException\n");
+void People_show(People *self) {
+    if (self == NULL) {
+        printf("NullPointerException\n");
         exit(-1);
     }
 
-    printf("Time: %-8ld, Kind: %-8s, Name: %-8s, Amount: %.2lf (%s)\n",
-        this->time, ProductKind_show(this->kind),
-        this->name, this->amount, this->unit);
-}
-
-int product_time_cmp(const void *plhs, const void *prhs) {
-    Product *lhs = *(Product **) plhs;
-    Product *rhs = *(Product **) prhs;
-    if (lhs == NULL) {
-        return 1;
-    }
-    if (rhs == NULL) {
-        return -1;
-    }
-    return (int) (lhs->time - rhs->time);
+    printf("Name: %-8s, Number: %-11s\n",
+        self->name,
+        self->number);
 }
 
 //////////////////////////////////////////////////////////////
 
 typedef struct {
-    Product *products[MAX];
+    People *records[MAX];
 } Vector;
 
 Vector *Vec_new() {
@@ -86,10 +50,10 @@ Vector *Vec_new() {
     return v;
 }
 
-void Vec_add(Vector *this, Product *product) {
+void Vec_add(Vector *self, People *product) {
     for (int i = 0; i < MAX; ++i) {
-        if (this->products[i] == NULL) {
-            this->products[i] = product;
+        if (self->records[i] == NULL) {
+            self->records[i] = product;
             return;
         }
     }
@@ -97,13 +61,9 @@ void Vec_add(Vector *this, Product *product) {
     exit(-1);
 }
 
-void Vec_sort(Vector *this) {
-    qsort(this->products, MAX, sizeof(Product *), product_time_cmp);
-}
-
-int Vec_indexOf(Vector *this, Product *product) {
+int Vec_indexOf(Vector *self, People *product) {
     for (int i = 0; i < MAX; ++i) {
-        Product *x = this->products[i];
+        People *x = self->records[i];
         if (x == NULL) {
             continue;
         }
@@ -114,9 +74,9 @@ int Vec_indexOf(Vector *this, Product *product) {
     return -1;
 }
 
-int Vec_indexOfByName(Vector *this, const char *name) {
+int Vec_indexOfByName(Vector *self, const char *name) {
     for (int i = 0; i < MAX; ++i) {
-        Product *product = this->products[i];
+        People *product = self->records[i];
         if (product == NULL) {
             continue;
         }
@@ -127,75 +87,99 @@ int Vec_indexOfByName(Vector *this, const char *name) {
     return -1;
 }
 
-Product *Vec_get(Vector *this, int index) {
+int Vec_indexOfByNumber(Vector *self, const char *number) {
+    for (int i = 0; i < MAX; ++i) {
+        People *product = self->records[i];
+        if (product == NULL) {
+            continue;
+        }
+        if (strncmp(number, product->number, sizeof(product->number)) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+People *Vec_get(Vector *self, int index) {
     if (index < 0 || index >= MAX) {
         return NULL;
     }
-    return this->products[index];
+    return self->records[index];
 }
 
-Product *Vec_getByName(Vector *this, const char *name) {
-    return Vec_get(this, Vec_indexOfByName(this, name));
+People *Vec_getByName(Vector *self, const char *name) {
+    return Vec_get(self, Vec_indexOfByName(self, name));
 }
 
-void Vec_removeAt(Vector *this, int index) {
+void Vec_removeAt(Vector *self, int index) {
     if (index < 0 || index >= MAX) {
         return;
     }
-    this->products[index] = NULL;
+    self->records[index] = NULL;
 }
 
-void Vec_remove(Vector *this, Product *product) {
-    Vec_removeAt(this, Vec_indexOf(this, product));
+void Vec_remove(Vector *self, People *product) {
+    Vec_removeAt(self, Vec_indexOf(self, product));
 }
 
-void Vec_show(Vector *this) {
+void Vec_show(Vector *self) {
     for (int i = 0; i < MAX; ++i) {
-        Product *product = this->products[i];
+        People *product = self->records[i];
         if (product == NULL) {
             continue;
         }
-        Product_show(product);
+        People_show(product);
     }
 }
 
-void Vec_serialize_stream(Vector *this, FILE *out) {
+void Vec_show_with_index(Vector *self, int start) {
     for (int i = 0; i < MAX; ++i) {
-        Product *product = this->products[i];
+        People *product = self->records[i];
         if (product == NULL) {
             continue;
         }
-        fwrite(product, sizeof(Product), 1, out);
+        printf(" %3d - ", i + start);
+        People_show(product);
     }
 }
 
-void Vec_serialize_file(Vector *this, const char *file) {
+void Vec_serialize_stream(Vector *self, FILE *out) {
+    for (int i = 0; i < MAX; ++i) {
+        People *product = self->records[i];
+        if (product == NULL) {
+            continue;
+        }
+        fwrite(product, sizeof(People), 1, out);
+    }
+}
+
+void Vec_serialize_file(Vector *self, const char *file) {
     FILE *fp = fopen(file, "wb");
     if (!fp) {
         printf("open %s failed\n", file);
         exit(-1);
     }
-    Vec_serialize_stream(this, fp);
+    Vec_serialize_stream(self, fp);
     fclose(fp);
 }
 
-void Vec_deserialize_stream(Vector *this, FILE *in) {
+void Vec_deserialize_stream(Vector *self, FILE *in) {
     int index = 0;
     while (!feof(in)) {
-        Product *product = malloc(sizeof(Product));
-        if (fread(product, sizeof(Product), 1, in) == 1) {
-            this->products[index++] = product;
+        People *product = malloc(sizeof(People));
+        if (fread(product, sizeof(People), 1, in) == 1) {
+            self->records[index++] = product;
         }
     }
 }
 
-void Vec_deserialize_file(Vector *this, const char *file) {
+void Vec_deserialize_file(Vector *self, const char *file) {
     FILE *fp = fopen(file, "rb");
     if (!fp) {
         printf("open %s failed\n", file);
         exit(-1);
     }
-    Vec_deserialize_stream(this, fp);
+    Vec_deserialize_stream(self, fp);
     fclose(fp);
 }
 
@@ -206,6 +190,14 @@ void clear_screen() {
 #else
     printf("\033[2J\033[1;1H");
 #endif
+}
+
+int UI_read_int(const char *prompt) {
+    int choice = -1;
+    printf("%s: ", prompt);
+    scanf("%d", &choice);
+    getchar();
+    return choice;
 }
 
 int UI_select(const char *title, const char *items[]) {
@@ -223,56 +215,171 @@ int UI_select(const char *title, const char *items[]) {
     }
 
     printf("\n");
-    printf("Input your choice: ");
-
-    int choice = -1;
-    scanf("%d", &choice);
-    return choice;
+    return UI_read_int("Input your choice");
 }
 
-void command_add(Vector *v) {
-
+void UI_pause() {
+    printf("Press Enter to continue\n");
+    getchar();
 }
 
-void command_search(Vector *v) {
+void load(Vector *v) {
+    FILE *fp = fopen(CONTACT_FILE, "rb");
+    if (!fp) {
+        return;
+    }
+    Vec_deserialize_stream(v, fp);
 }
 
-void command_manage(Vector *v) {
+void save(Vector *v) {
+    FILE *fp = fopen(CONTACT_FILE, "wb");
+    if (!fp) {
+        return;
+    }
+    Vec_serialize_stream(v, fp);
 }
 
-void command_load(Vector *v) {
+int command_show(Vector *v) {
+    Vec_show_with_index(v, 1);
+    printf("===================================\n\n");
+    UI_pause();
+    return COMMAND_OK;
 }
 
-void command_store(Vector *v) {
+int command_add(Vector *v) {
+    People *people = People_new("<unnamed>", "<unspecified>");
+
+    printf("Type name  : ");
+    scanf(NAME_INPUT, people->name);
+    getchar();
+    printf("Type number: ");
+    scanf(NUM_INPUT, people->number);
+    getchar();
+
+    Vec_add(v, people);
+
+    printf("Added record (name: %s, number: %s)\n",
+        people->name,
+        people->number);
+    UI_pause();
+    return COMMAND_OK;
 }
 
-void command_exit(Vector *v) {
+int command_search_name(Vector *v) {
+    char name[NAME_LEN] = {0};
+    printf("Type the name you want to search: ");
+    scanf(NAME_INPUT, name);
+    getchar();
+
+    int index = Vec_indexOfByName(v, name);
+    if (index == -1) {
+        printf("No people named '%s'\n", name);
+    } else {
+        People *people = Vec_get(v, index);
+        People_show(people);
+    }
+
+    UI_pause();
+    return COMMAND_OK;
+}
+
+int command_search_number(Vector *v) {
+    char number[NUM_LEN] = {0};
+    printf("Type the number you want to search: ");
+    scanf(NUM_INPUT, number);
+    getchar();
+
+    int index = Vec_indexOfByNumber(v, number);
+    if (index == -1) {
+        printf("No people has the number '%s'\n", number);
+    } else {
+        People *people = Vec_get(v, index);
+        People_show(people);
+    }
+
+    UI_pause();
+    return COMMAND_OK;
+}
+
+int command_change(Vector *v) {
+    Vec_show_with_index(v, 1);
+    printf("===================================\n\n");
+
+    int choice = UI_read_int("Type the index that you want to change");
+    People *people = Vec_get(v, choice - 1);
+    if (people == NULL) {
+        printf("Invalid index, please try again\n");
+        UI_pause();
+        return COMMAND_OK;
+    }
+
+    choice = UI_select("Select your option", (const char * []) {
+        "Change Name",
+        "Change Number",
+        NULL,
+    });
+
+    char *ptr = NULL;
+    --choice;
+    switch (choice) {
+        case 0:
+            ptr = people->name;
+            break;
+        case 1:
+            ptr = people->number;
+            break;
+        default:
+            printf("Invalid choice, please try again\n");
+            UI_pause();
+            break;
+    }
+
+    printf("Type the new content: ");
+    scanf("%s", ptr);
+    getchar();
+
+    printf("Changed record(name: %s, number: %s)\n",
+        people->name,
+        people->number);
+    UI_pause();
+    return COMMAND_OK;
+}
+
+int command_delete(Vector *v) {
+    Vec_show_with_index(v, 1);
+    printf("===================================\n\n");
+    int choice = UI_read_int("Type the index that you want to delete");
+    Vec_removeAt(v, choice - 1);
+    return COMMAND_OK;
+}
+
+int command_exit(Vector *v) {
     printf("Goodbye\n");
-    exit(0);
+    return COMMAND_ERR;
 }
 
-void main_ui() {
-    typedef void(*command_fn)(Vector *);
+void main_ui(Vector *v) {
+    typedef int(*command_fn)(Vector *);
 
     static const command_fn cmds[] = {
+        command_show,
         command_add,
-        command_search,
-        command_manage,
-        command_load,
-        command_store,
+        command_search_name,
+        command_search_number,
+        command_change,
+        command_delete,
         command_exit,
     };
 
-    Vector *v = Vec_new();
-
     while (1) {
-        int select = UI_select("Welcome to the Commodity Outbound Management System",
+        int select = UI_select("Welcome to the Contact Manager",
             (const char *[]) {
-                "Add new record(s)",
-                "Search record(s)",
-                "Manage record(s)",
-                "Load from file",
-                "Store to file",
+                "Show all record(s)",
+                "Add new record",
+                "Search record by name",
+                "Search record by number",
+                "Change record",
+                "Delete record",
                 "Exit",
                 NULL,
             });
@@ -280,14 +387,20 @@ void main_ui() {
         --select;
         if (select >= 0 && select < sizeof(cmds) / sizeof(command_fn)) {
             clear_screen();
-            cmds[select](v);
+            if (cmds[select](v) != 0) {
+                break;
+            }
         } else {
-            printf("Invalid input, good bye\n");
-            return;
+            printf("Invalid input, please try again\n");
+            break;
         }
     }
 }
 
 int main() {
-    main_ui();
+    Vector *v = Vec_new();
+    load(v);
+    main_ui(v);
+    save(v);
+    return 0;
 }

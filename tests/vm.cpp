@@ -188,5 +188,6 @@ int64_t fact(int8_t n) {
 
 int main(int argc, const char *argv[]) {
     printf("%d! = %ld\n", 10, fact(10));
+
     return 0;
 }

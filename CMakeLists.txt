@@ -69,6 +69,7 @@ add_executable(http-server tests/http-server.cpp)
 add_executable(sv tests/sv.c)
 add_executable(ph tests/ph.c)
 add_executable(clt tests/clt.cpp)
+add_executable(calc-lang tests/calc-lang.cpp)
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/works)
     add_subdirectory(works)

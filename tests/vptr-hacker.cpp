@@ -2,6 +2,9 @@
 // Created by kiva on 2019/12/13.
 //
 #include <iostream>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <cstring>
 
 struct VtableOffsetHacker {
     size_t offset{0};
@@ -4030,7 +4033,6 @@ To memoryCast(From source) {
     return u.target;
 }
 
-
 class Vtable {
 public:
     template <typename ClassType, typename R, typename ... Args>
@@ -4056,31 +4058,68 @@ public:
 
         return getOffset(&FakeDerived::lastVirtualMethod);
     }
+
+    template <typename T>
+    static void **obtain(T *t) {
+        void **vptr = *(void ***) t;
+        return vptr;
+    }
+
+    template <typename T>
+    static void apply(T *t, void **vptr) {
+        *(void ***) t = vptr;
+    }
 };
 
-class Base {
-public:
-    virtual ~Base() = default;
-    virtual void pureVirtual1() = 0;
-    virtual void pureVirtual2() = 0;
-    virtual void pureVirtual3() = 0;
-    virtual void pureVirtual4() = 0;
+struct Test {
+    virtual int test(int a, int b) {
+        printf("Test::test(): returning %d\n", a + b);
+        return a + b;
+    }
+
+    virtual void hi() {
+        printf("Test::hi(): hello world");
+    }
 };
 
-class Derived : public Base {
-public:
-    ~Derived() override = default;
-    void pureVirtual1() override {}
-    void pureVirtual2() override {}
-    void pureVirtual3() override {}
-    void pureVirtual4() override {}
-};
+int test_hack(Test *_this, int a, int b) {
+    printf("test_hack: returning %d\n", a - b);
+    return a - b;
+}
 
 int main() {
-    printf("Vtable size of Base: %zd\n", Vtable::getSize<Base>());
-    printf("offset of Base::~Base(): %zd\n", Vtable::getDestructorOffset<Base>());
-    printf("offset of Base::~pureVirtual1(): %zd\n", Vtable::getOffset(&Base::pureVirtual1));
-    printf("offset of Base::~pureVirtual2(): %zd\n", Vtable::getOffset(&Base::pureVirtual2));
-    printf("offset of Base::~pureVirtual3(): %zd\n", Vtable::getOffset(&Base::pureVirtual3));
-    printf("offset of Base::~pureVirtual4(): %zd\n", Vtable::getOffset(&Base::pureVirtual4));
+    Test *test = new Test;
+    printf(":: Hooking object %p\n", test);
+
+    void **vptr = Vtable::obtain(test);
+    printf(":: Got vptr %p\n", vptr);
+
+    size_t vs = Vtable::getSize<Test>();
+    printf(":: Vtable has %zd entries\n", vs);
+
+    void **hack = (void **) malloc(sizeof(void *) * vs);
+    printf(":: Allocated new vptr %p\n", hack);
+
+    for (int i = 0; i < vs; ++i) {
+        hack[i] = vptr[i];
+        printf(":: hack[%d] = %p\n", i, hack[i]);
+    }
+    printf(":: Copied %zd entries to new vptr\n", vs);
+
+    size_t offset = Vtable::getOffset(&Test::test);
+    printf(":: Target function is at vptr[%zd]\n", offset);
+
+    hack[offset] = (void *) &test_hack;
+    printf(":: Rewrite target function address\n");
+
+    printf(":: Calling target function before hack\n");
+    int result = test->test(1, 2);
+    printf(":: Target function returned %d\n", result);
+
+    printf(":: Rewriting vptr\n");
+    Vtable::apply(test, hack);
+
+    printf(":: Calling target function after hack\n");
+    result = test->test(1, 2);
+    printf(":: Target function returned %d\n", result);
 }
